@@ -115,6 +115,9 @@ export default function Main(props) {
         if (!noCopy) chatData[curGid] = chats;
         ss.setVal('chatData', JSON.stringify(chatData)).then();
     }
+    const syncSignKeys = () => {
+        ss.setVal('signKeys', signPubKeys).then();
+    }
 
     useEffect(() => {
         //if (Object.keys(chatList).length === 0) return;
@@ -160,6 +163,10 @@ export default function Main(props) {
             await send(JSON.stringify({
                 act: 'updatePub',
                 key: keys.current.pub
+            }));
+            await send(JSON.stringify({
+                act: 'updateSign',
+                key: signKeys.current.pubSign
             }));
 
             await ping();
@@ -210,6 +217,11 @@ export default function Main(props) {
                     }
                     if (awaitingSend.current && awaitingSend.current.uid === d.uid && awaitingSend.current.act) awaitingSend.current.act(d.pub);
                     break;
+                case 'signKey':
+                    if (signPubKeys[d.uid]) return;
+                    signPubKeys = {...signPubKeys, [d.uid]: d.pub};
+                    syncSignKeys();
+                    break;
                 default:
                     break;
             }
@@ -237,7 +249,10 @@ export default function Main(props) {
             const pubSign = await ss.getVal('signPub');
             const priSign = await ss.getVal('signPri');
             signKeys.current = {pubSign, priSign};
-            console.log(signKeys.current)
+            console.log(signKeys.current);
+
+            signPubKeys = await ss.getVal('signKeys');
+            console.log(signPubKeys);
 
             usrUID = await ss.getVal('uid');
 
@@ -298,6 +313,41 @@ export default function Main(props) {
             iv: lzString.decompress(d.iv)
         }, k);
 
+        // Check signature
+        // First see if the public key is present
+        if (!signPubKeys || !signPubKeys[d.uid])
+            return 'The public keys required to verify this message are missing. Please recreate this chat.'
+
+        const signPub = await window.crypto.subtle.importKey(
+            'jwk', //can be 'jwk' (public or private), "spki" (public only), or "pkcs8" (private only)
+            signPubKeys[d.uid],
+            {   //these are the algorithm options
+                name: 'ECDSA',
+                namedCurve: 'P-521', //can be "P-256", "P-384", or "P-521"
+            },
+            false, //whether the key is extractable (i.e. can be used in exportKey)
+            ['verify'] //"verify" for public key import, "sign" for private key imports
+        );
+        const ok = await window.crypto.subtle.verify(
+            {
+                name: 'ECDSA',
+                hash: {name: 'SHA-512'}, //can be "SHA-1", "SHA-256", "SHA-384", or "SHA-512"
+            },
+            signPub, //from generateKey or importKey above
+            b64ToArray(lzString.decompress(d.sig)), //ArrayBuffer of the signature
+            new TextEncoder().encode(JSON.stringify({
+                data: d.data,
+                iv: d.iv,
+                gid: d.gid,
+                id: d.target,
+
+                key: d.key,
+                act: 'sendTxt',
+            })) //ArrayBuffer of the data
+        );
+        console.log(ok);
+        if (!ok) return 'Failed to verify authenticity of this message';
+
         // Finally, decompress message
         return lzString.decompressFromUTF16(raw);
     }
@@ -354,7 +404,6 @@ export default function Main(props) {
 
                 key: lzString.compress(arrayToB64(encKey)),
                 act: 'sendTxt',
-                uid: usrUID
             }
 
             const signPri = await window.crypto.subtle.importKey(
@@ -547,7 +596,11 @@ export default function Main(props) {
                                 name: addVal.name,
                                 people: [addVal.gid]
                             }
-                        })
+                        });
+                        send(JSON.stringify({
+                            act: 'getSignPub',
+                            target: addVal.gid
+                        }));
                         _handleAddClose();
                     }}>Add</Button>
                 </DialogActions>
