@@ -19,10 +19,10 @@ export default function Login(props) {
     const pwFieldRef = useRef();
 
     // Auto unlock
-    props.ss.unlock('Student01').then(r => {
+    /*props.ss.unlock('Student01').then(r => {
         console.log(r)
         if (r) props.sl(true);
-    });
+    });*/
 
     return <div style={{minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
         <Card elevation={12} sx={{padding: 2, minWidth: 300}}>

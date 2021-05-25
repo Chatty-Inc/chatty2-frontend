@@ -1,3 +1,5 @@
+import './css/App.css';
+
 import themeOptions from './lib/themeOptions';
 import { useEffect, useState } from 'react';
 
@@ -8,6 +10,10 @@ import Main from './pages/Main';
 import Login from './pages/Login';
 import OnBoarding from './pages/Onboarding';
 import Loading from './components/Loading';
+
+// Fonts
+import '@fontsource/noto-sans/400.css';
+import '@fontsource/noto-sans/700.css';
 
 const ss = new SecureStorage();
 

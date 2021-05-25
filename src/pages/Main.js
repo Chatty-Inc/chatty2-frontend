@@ -41,6 +41,10 @@ import ContentCopyRoundedIcon from '@material-ui/icons/ContentCopyRounded';
 import MoreVertRoundedIcon from '@material-ui/icons/MoreVertRounded';
 import DeleteForeverRoundedIcon from '@material-ui/icons/DeleteForeverRounded';
 import DriveFileRenameOutlineRoundedIcon from '@material-ui/icons/DriveFileRenameOutlineRounded';
+import appIcon from '../img/icon.svg';
+import VerifiedUserRoundedIcon from '@material-ui/icons/VerifiedUserRounded';
+import PersonRoundedIcon from '@material-ui/icons/PersonRounded';
+import SettingsRoundedIcon from '@material-ui/icons/SettingsRounded';
 
 // Components
 import ChatsList from '../components/ChatsList';
@@ -59,6 +63,7 @@ import textDec from '../lib/crypto/textDec';
 // Compression/decompression
 import * as lzString from 'lz-string';
 import { useIsMount } from '../hooks/useIsMount';
+import getHexHash from '../lib/crypto/getHexHash';
 
 const useStyles = makeStyles((theme) => ({
     container: {
@@ -67,6 +72,15 @@ const useStyles = makeStyles((theme) => ({
         alignItems: 'stretch',
         padding: theme.spacing(2),
     },
+    code: {
+        backgroundColor: theme.palette.background.paper,
+        border: '2px solid rgba(128, 128, 128, .5)',
+        borderRadius: theme.shape.borderRadius,
+        padding: `${theme.spacing(.3)} ${theme.spacing(.5)}`,
+        margin: `${theme.spacing(.5)} ${theme.spacing(.4)}`,
+        display: 'block',
+        fontFamily: 'Courier'
+    }
 }));
 
 let chatData = {};
@@ -89,6 +103,7 @@ export default function Main(props) {
     const
         [curGid, setCurGid] = useState(null),
         [menuAnchor, setMenuAnchor] = useState(null),
+        [uMenuAnchor, setUMenuAnchor] = useState(null),
         [chatList, setChatList] = useState({}),
         [snackbar, setSnackbar] = useState({open: false, msg: '', type: 'success'}),
         [conState, setConState] = useState(0),
@@ -98,6 +113,7 @@ export default function Main(props) {
         [delDialogOpen, setDelDialogOpen] = useState(false),
         [changeTitleOpen, setChangeTitleOpen] = useState(false),
         [msg, setMsg] = useState(''),
+        [signVerifyData, setSignVerifyData] = useState({open: false}),
         [newTitle, setNewTitle] = useState(''),
         [diff, setDiff] = useState(0),
         [addVal, setAddVal] = useState({name: '', gid: ''}),
@@ -105,8 +121,10 @@ export default function Main(props) {
         keys = useRef({}),
         signKeys = useRef({}),
         ws = useRef(),
+        msgScroller = useRef(),
         awaitingSend = useRef(null),
-        scrollRef = useRef(),
+        signKeyAct = useRef({}),
+        usrMenuOpen = Boolean(uMenuAnchor),
         menuOpen = Boolean(menuAnchor);
 
     const isMt = useIsMount();
@@ -117,6 +135,10 @@ export default function Main(props) {
     }
     const syncSignKeys = () => {
         ss.setVal('signKeys', signPubKeys).then();
+    }
+
+    const verifySignKey = async (uid, p) => {
+        setSignVerifyData({uid: uid, key: p, hash: await getHexHash(p), open: true});
     }
 
     useEffect(() => {
@@ -131,8 +153,14 @@ export default function Main(props) {
         syncData();
     }, [chats]);
     useEffect(() => {
-         setChats(chatData[curGid] ?? []);
-         scrollToBottom(false);
+        const nc = chatData[curGid] ?? [];
+        setChats(nc);
+        setTimeout(() => {
+            msgScroller.current?.scrollToIndex({
+                index: nc.length,
+            });
+            console.log('scrolling', nc.length);
+        }, 10);
     }, [curGid]);
 
     // WebSocket utility functions
@@ -188,23 +216,30 @@ export default function Main(props) {
                     setDiff(new Date() - lastTime);
                     break;
                 case 'txtMsg':
-                    recvMsg(d).then(m => {
-                        const o = { msg: m, uid: d.uid }
-                        let oldV = null
-                        setCurGid(v => {
-                            oldV = v;
-                            return v
+                    const act = () => {
+                        recvMsg(d).then(m => {
+                            const o = { msg: m, uid: d.uid }
+                            let oldV = null
+                            setCurGid(v => {
+                                oldV = v;
+                                return v
+                            });
+                            if (!chatData[d.gid]) chatData[d.gid] = [];
+                            if (d.gid === oldV) setChats(ov => [...ov, o]);
+                            else chatData[d.gid].push(o);
                         });
-                        if (!chatData[d.gid]) chatData[d.gid] = [];
-                        if (d.gid === oldV) {
-                            setChats(ov => [...ov, o]);
-                            scrollToBottom();
-                        }
-                        else chatData[d.gid].push(o);
-                    });
+                    }
                     // Silly workaround to access the latest value of a state in a event handler
                     setChatList(ov => {
-                        if (ov[d.gid]) return ov;
+                        if (ov[d.gid]) {
+                            act()
+                            return ov;
+                        }
+                        send(JSON.stringify({
+                            act: 'getSignPub',
+                            target: d.uid
+                        }));
+                        signKeyAct.current = {uid: d.uid, act: act};
                         return {...ov, [d.gid]: {
                             name: 'Unknown chat', people: [d.uid]
                         }}
@@ -218,9 +253,9 @@ export default function Main(props) {
                     if (awaitingSend.current && awaitingSend.current.uid === d.uid && awaitingSend.current.act) awaitingSend.current.act(d.pub);
                     break;
                 case 'signKey':
+                    if (!signPubKeys) signPubKeys = {};
                     if (signPubKeys[d.uid]) return;
-                    signPubKeys = {...signPubKeys, [d.uid]: d.pub};
-                    syncSignKeys();
+                    verifySignKey(d.uid, d.pub).then();
                     break;
                 default:
                     break;
@@ -267,16 +302,8 @@ export default function Main(props) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const scrollToBottom = (animate = true) => {
-        if (!scrollRef.current) return;
-        requestAnimationFrame(() => scrollRef.current.scroll({
-            top: scrollRef.current.scrollHeight,
-            left: 0,
-            behavior: animate ? 'smooth' : 'auto'
-        }));
-    }
-
     const recvMsg = async d => {
+        console.log(signPubKeys)
         // Decrypt AES key
         const priKey = await window.crypto.subtle.importKey(
             'jwk', //can be 'jwk' (public or private), 'spki' (public only), or 'pkcs8' (private only)
@@ -448,7 +475,6 @@ export default function Main(props) {
             sendMsg(curGid, chatList[curGid].people[0]).then(() => {
                 setMsg('');
             });
-            scrollToBottom();
         }
     }
     const _handleAddClose = () => {
@@ -457,6 +483,7 @@ export default function Main(props) {
     }
     const _handleDelClose = () => setDelDialogOpen(false);
     const _handleMenuClose = () => setMenuAnchor(null);
+    const _handleUMenuClose = () => setUMenuAnchor(null);
     const _handleChangeTitleClose = () => setChangeTitleOpen(false);
 
     return (
@@ -464,7 +491,8 @@ export default function Main(props) {
             <div style={{minHeight: '100vh'}}>
                 <AppBar position='relative'>
                     <Toolbar>
-                        <Typography variant='h6' component='div' sx={{flexGrow: 1}}>
+                        <img src={appIcon} width={32} height={32} alt='' />
+                        <Typography variant='h6' component='div' sx={{flexGrow: 1, ml: 2.5}}>
                             Chatty
                         </Typography>
                         <Card sx={{padding: '4px 12px', display: 'flex', alignItems: 'center'}} elevation={4}>
@@ -504,7 +532,7 @@ export default function Main(props) {
                         <ChatsList cl={chatList} sg={setCurGid} cg={curGid} q={query} />
 
                         <Divider/>
-                        <ListItem button ContainerComponent='div'>
+                        <ListItem button ContainerComponent='div' id='u-acc-btn' onClick={e => setUMenuAnchor(e.currentTarget)}>
                             <ListItemIcon><AccountCircleRoundedIcon/></ListItemIcon>
                             <ListItemText primary='Your Account'/>
                             <ListItemSecondaryAction>
@@ -518,6 +546,21 @@ export default function Main(props) {
                                 </Tooltip>
                             </ListItemSecondaryAction>
                         </ListItem>
+
+                        <Menu
+                            id='u-acct-menu'
+                            aria-labelledby='u-acc-btn'
+                            anchorEl={uMenuAnchor}
+                            open={usrMenuOpen}
+                            onClose={_handleUMenuClose}
+                            sx={{'& .MuiSvgIcon-root': { color: 'text.secondary', marginRight: 1.5 }}}
+                            PaperProps={{ style: { minWidth: 350 } }}
+                            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                            transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                            <MenuItem onClick={_handleUMenuClose}><PersonRoundedIcon /> Profile</MenuItem>
+                            <MenuItem onClick={_handleUMenuClose}><SettingsRoundedIcon /> Account Settings</MenuItem>
+                            <MenuItem onClick={_handleUMenuClose}><VerifiedUserRoundedIcon /> Verify Sign Key</MenuItem>
+                        </Menu>
                     </Card>
 
                     <Card sx={{flexGrow: 1, ml: 1, position: 'relative', display: 'flex', flexDirection: 'column'}}
@@ -543,14 +586,17 @@ export default function Main(props) {
                                                 open={menuOpen}
                                                 onClose={_handleMenuClose}>
                                                 <MenuItem onClick={() => {
-                                                    setChangeTitleOpen(true);
-                                                    _handleMenuClose();
+                                                    setCurGid(v => {
+                                                        setNewTitle(chatList[v].name);
+                                                        setChangeTitleOpen(true);
+                                                        _handleMenuClose();
+                                                        return v;
+                                                    })
                                                 }}>
                                                     <DriveFileRenameOutlineRoundedIcon />
                                                     Edit Chat Title
                                                 </MenuItem>
                                                 <MenuItem onClick={() => {
-                                                    setNewTitle(chatList[curGid].name);
                                                     setDelDialogOpen(true);
                                                     _handleMenuClose();
                                                 }}>
@@ -561,7 +607,7 @@ export default function Main(props) {
                                         </ListItemSecondaryAction>
                                     </ListItem>
 
-                                    <MsgHistory c={chats} sRef={scrollRef} uid={usrUID} />
+                                    <MsgHistory c={chats} uid={usrUID} r={msgScroller}/>
 
                                     <MsgInput m={msg} sm={setMsg} send={_handleSend}/>
                                 </>
@@ -571,6 +617,7 @@ export default function Main(props) {
                 </div>
             </div>
 
+            { /* Create chat dialog */ }
             <Dialog
                 maxWidth='xs'
                 open={addDialogOpen}
@@ -606,6 +653,7 @@ export default function Main(props) {
                 </DialogActions>
             </Dialog>
 
+            { /* Delete chat confirmation dialog */ }
             <Dialog
                 maxWidth='xs'
                 open={delDialogOpen}
@@ -640,6 +688,7 @@ export default function Main(props) {
                 </DialogActions>
             </Dialog>
 
+            { /* Edit chat title dialog */ }
             <Dialog
                 maxWidth='xs'
                 open={changeTitleOpen}
@@ -664,6 +713,46 @@ export default function Main(props) {
                         })
                         _handleChangeTitleClose()
                     }}>Change Title</Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                open={signVerifyData.open}
+                onClose={() => setSignVerifyData({open: false})}
+                aria-labelledby='ct-d-t'
+                aria-describedby='ct-d-d'>
+                <DialogTitle id='ct-d-t'>Verify New Public Key</DialogTitle>
+                <DialogContent>
+                    <DialogContentText align='center' mb={'0!important'}>
+                        {
+                            signVerifyData.mode === 0 && <>
+                                Received a new public signing key from <span className={classes.code}>{signVerifyData.uid}</span>
+                                Cross check the code below with this person to ensure this key is authentic.
+                                This ensures your messages can only be decrypted by your recipient.
+                            </>
+                        }
+                        {
+                            signVerifyData.mode === 1 && <>
+                                Cross check the code below with the code your recipient received.
+                            </>
+                        }
+                        <span className={classes.code} style={{fontWeight: 900}}>{signVerifyData?.hash?.join(' ')}</span>
+                        <small style={{display: 'block', marginBottom: 8}}>
+                            Ask your recipient to click on [Your Account > Verify Sign Key] to verify this key.
+                        </small>
+                        You can always delete signing keys at [Settings > Manage Signing Keys]
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setSignVerifyData({open: false})}>Reject</Button>
+                    <div style={{flexGrow: 1}}/>
+                    <Button onClick={() => {
+                        signPubKeys = {...signPubKeys, [signVerifyData.uid]: signVerifyData.key};
+                        syncSignKeys();
+                        setSignVerifyData({open: false});
+                        if (signKeyAct.current && signKeyAct.current.uid === signVerifyData.uid && signKeyAct.current.act)
+                            signKeyAct.current.act();
+                    }}>Accept</Button>
                 </DialogActions>
             </Dialog>
 

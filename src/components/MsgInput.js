@@ -38,6 +38,9 @@ export default function MsgInput(props) {
                                e.preventDefault();
                            }
                        }}
+                       inputProps={
+                           {maxLength: 1000}
+                       }
                        sx={{flexGrow: 1, mr: .5, ml: '58px'}}/>
 
             <IconButton color='primary' aria-label='send' sx={{mr: .5, mb: .5}} onClick={props.send}>

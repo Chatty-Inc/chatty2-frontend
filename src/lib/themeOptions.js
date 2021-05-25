@@ -16,6 +16,22 @@ export default function themeOptions(mode) {
                 main: '#9c27b0',
             },
         },
+        typography: {
+            fontFamily: [
+                '"Noto Sans"',
+                'Roboto',
+                '-apple-system',
+                'BlinkMacSystemFont',
+                '"Segoe UI"',
+                'Roboto',
+                '"Helvetica Neue"',
+                'Arial',
+                'sans-serif',
+                '"Apple Color Emoji"',
+                '"Segoe UI Emoji"',
+                '"Segoe UI Symbol"',
+            ].join(','),
+        },
         components: {
             MuiCssBaseline: {
                 styleOverrides: (mode === 'dark' ?
