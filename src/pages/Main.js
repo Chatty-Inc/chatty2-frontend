@@ -138,7 +138,7 @@ export default function Main(props) {
     }
 
     const verifySignKey = async (uid, p) => {
-        setSignVerifyData({uid: uid, key: p, hash: await getHexHash(p), open: true});
+        setSignVerifyData({uid: uid, key: p, hash: await getHexHash(p), open: true, mode: 0});
     }
 
     useEffect(() => {
@@ -154,13 +154,19 @@ export default function Main(props) {
     }, [chats]);
     useEffect(() => {
         const nc = chatData[curGid] ?? [];
-        setChats(nc);
-        setTimeout(() => {
-            msgScroller.current?.scrollToIndex({
-                index: nc.length,
-            });
-            console.log('scrolling', nc.length);
-        }, 10);
+        setChats(() => {
+            setTimeout(() => {
+                msgScroller.current?.scrollToIndex({
+                    index: nc.length,
+                    align: 'bottom',
+                    behavior: 'auto'
+                });
+                console.log('scrolling', nc.length);
+            }, 10);
+            return nc;
+        });
+
+
     }, [curGid]);
 
     // WebSocket utility functions
@@ -170,7 +176,7 @@ export default function Main(props) {
     }
     const connect = () => {
         ws.current = null;
-        ws.current = new WebSocket('wss://chattyBackend.vinkwok.repl.co');
+        ws.current = new WebSocket('wss://api.chattyapp.cf');
 
         let int = null
         let lastTime = +new Date();
@@ -303,7 +309,6 @@ export default function Main(props) {
     }, []);
 
     const recvMsg = async d => {
-        console.log(signPubKeys)
         // Decrypt AES key
         const priKey = await window.crypto.subtle.importKey(
             'jwk', //can be 'jwk' (public or private), 'spki' (public only), or 'pkcs8' (private only)
@@ -321,7 +326,7 @@ export default function Main(props) {
                 name: 'RSA-OAEP'
             },
             priKey,
-            b64ToArray(lzString.decompress(d.key))
+            b64ToArray(lzString.decompressFromUTF16(d.key))
         );
 
         // Import the key
@@ -337,7 +342,7 @@ export default function Main(props) {
 
         const raw = await textDec({
             data: d.data,
-            iv: lzString.decompress(d.iv)
+            iv: lzString.decompressFromUTF16(d.iv)
         }, k);
 
         // Check signature
@@ -361,7 +366,7 @@ export default function Main(props) {
                 hash: {name: 'SHA-512'}, //can be "SHA-1", "SHA-256", "SHA-384", or "SHA-512"
             },
             signPub, //from generateKey or importKey above
-            b64ToArray(lzString.decompress(d.sig)), //ArrayBuffer of the signature
+            b64ToArray(lzString.decompressFromUTF16(d.sig)), //ArrayBuffer of the signature
             new TextEncoder().encode(JSON.stringify({
                 data: d.data,
                 iv: d.iv,
@@ -372,7 +377,6 @@ export default function Main(props) {
                 act: 'sendTxt',
             })) //ArrayBuffer of the data
         );
-        console.log(ok);
         if (!ok) return 'Failed to verify authenticity of this message';
 
         // Finally, decompress message
@@ -425,11 +429,11 @@ export default function Main(props) {
 
             const partial = {
                 data: data,
-                iv: lzString.compress(iv),
+                iv: lzString.compressToUTF16(iv),
                 gid: gID,
                 id: target,
 
-                key: lzString.compress(arrayToB64(encKey)),
+                key: lzString.compressToUTF16(arrayToB64(encKey)),
                 act: 'sendTxt',
             }
 
@@ -452,7 +456,7 @@ export default function Main(props) {
                 new TextEncoder().encode(JSON.stringify(partial)) //ArrayBuffer of data you want to sign
             )
 
-            await send(JSON.stringify({...partial, sig: lzString.compress(arrayToB64(signature))}));
+            await send(JSON.stringify({...partial, sig: lzString.compressToUTF16(arrayToB64(signature))}));
         }
 
         // Retrieve private key if not already downloaded
@@ -529,7 +533,7 @@ export default function Main(props) {
                             </Fab>
                         </div>
 
-                        <ChatsList cl={chatList} sg={setCurGid} cg={curGid} q={query} />
+                        <ChatsList cl={chatList} sg={setCurGid} cg={curGid} q={query} pk={signPubKeys} />
 
                         <Divider/>
                         <ListItem button ContainerComponent='div' id='u-acc-btn' onClick={e => setUMenuAnchor(e.currentTarget)}>
@@ -559,7 +563,13 @@ export default function Main(props) {
                             transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
                             <MenuItem onClick={_handleUMenuClose}><PersonRoundedIcon /> Profile</MenuItem>
                             <MenuItem onClick={_handleUMenuClose}><SettingsRoundedIcon /> Account Settings</MenuItem>
-                            <MenuItem onClick={_handleUMenuClose}><VerifiedUserRoundedIcon /> Verify Sign Key</MenuItem>
+                            <MenuItem onClick={async () => {
+                                setSignVerifyData({uid: null, key: null,
+                                    hash: await getHexHash(signKeys.current.pubSign), open: true, mode: 1});
+                                _handleUMenuClose();
+                            }}>
+                                <VerifiedUserRoundedIcon /> Verify Sign Key
+                            </MenuItem>
                         </Menu>
                     </Card>
 
@@ -568,7 +578,7 @@ export default function Main(props) {
                         {
                             curGid
                                 ? <>
-                                    <ListItem button divider ContainerComponent='div'>
+                                    <ListItem button divider ContainerComponent='div' >
                                         <ListItemAvatar><Avatar><ImageIcon/></Avatar></ListItemAvatar>
                                         <ListItemText primary={chatList[curGid].name} secondary='Changhoa, Zerui & You'/>
                                         <ListItemSecondaryAction>
@@ -721,7 +731,7 @@ export default function Main(props) {
                 onClose={() => setSignVerifyData({open: false})}
                 aria-labelledby='ct-d-t'
                 aria-describedby='ct-d-d'>
-                <DialogTitle id='ct-d-t'>Verify New Public Key</DialogTitle>
+                <DialogTitle id='ct-d-t'>Verify { signVerifyData.mode === 0 ? 'New' : 'Your' } Public Key</DialogTitle>
                 <DialogContent>
                     <DialogContentText align='center' mb={'0!important'}>
                         {
@@ -738,21 +748,24 @@ export default function Main(props) {
                         }
                         <span className={classes.code} style={{fontWeight: 900}}>{signVerifyData?.hash?.join(' ')}</span>
                         <small style={{display: 'block', marginBottom: 8}}>
-                            Ask your recipient to click on [Your Account > Verify Sign Key] to verify this key.
+                            Ask your recipient to click on [
+                            {signVerifyData.mode === 0 ? 'Your Account' : '(Your icon in chat)'} > Verify Sign Key] to verify this key.
                         </small>
-                        You can always delete signing keys at [Settings > Manage Signing Keys]
+                        You can delete signing keys at [Settings > Manage Signing Keys]
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setSignVerifyData({open: false})}>Reject</Button>
+                    <Button onClick={() => setSignVerifyData({open: false})}>{ signVerifyData.mode === 0 ? 'Reject' : 'Close' }</Button>
                     <div style={{flexGrow: 1}}/>
-                    <Button onClick={() => {
-                        signPubKeys = {...signPubKeys, [signVerifyData.uid]: signVerifyData.key};
-                        syncSignKeys();
-                        setSignVerifyData({open: false});
-                        if (signKeyAct.current && signKeyAct.current.uid === signVerifyData.uid && signKeyAct.current.act)
-                            signKeyAct.current.act();
-                    }}>Accept</Button>
+                    {
+                        signVerifyData.mode === 0 &&  <Button onClick={() => {
+                            signPubKeys = {...signPubKeys, [signVerifyData.uid]: signVerifyData.key};
+                            syncSignKeys();
+                            setSignVerifyData({open: false});
+                            if (signKeyAct.current && signKeyAct.current.uid === signVerifyData.uid && signKeyAct.current.act)
+                                signKeyAct.current.act();
+                        }}>Accept</Button>
+                    }
                 </DialogActions>
             </Dialog>
 

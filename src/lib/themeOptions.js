@@ -43,11 +43,11 @@ export default function themeOptions(mode) {
 
 /* Background of the scrollbar except button or resizer */
 ::-webkit-scrollbar-track {
-    background-color: #121212;
+    background-color: #2c2c2c;
 }
 
 ::-webkit-scrollbar-corner {
-    background-color: #121212;
+    background-color: #2c2c2c;
 }
 
 body.light ::-webkit-scrollbar-track, body.light ::-webkit-scrollbar-corner {
@@ -58,7 +58,7 @@ body.light ::-webkit-scrollbar-track, body.light ::-webkit-scrollbar-corner {
 ::-webkit-scrollbar-thumb {
     background-color: rgb(107, 107, 107);
     border-radius: 14px;
-    border: 3px solid #121212;
+    border: 3px solid #2c2c2c;
     transition: all 500ms ease-out;
 }
 ::-webkit-scrollbar-thumb:hover {

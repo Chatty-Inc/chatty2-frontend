@@ -196,12 +196,11 @@ function ChatBubble(p) {
         })}>
             <Typography variant='caption'>{uid}</Typography>
             <Typography><Linkify options={{defaultProtocol: 'https', target: {url: '_blank'}}}>{msg}</Linkify></Typography>
+
         </div>
 
         { !nextJoint && <UserAvatar uid={uid} fromUsr={fromUsr}/> }
     </div>
 }
 
-export default memo(ChatBubble, (prev, now) =>
-    prev.msg === now.msg && now.uid === prev.uid
-);
+export default memo(ChatBubble)

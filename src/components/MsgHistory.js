@@ -18,7 +18,7 @@ function MsgHistory(props) {
                 ref={props.r}
                 overscan={250}
                 alignToBottom
-                followOutput={b => b ? 'smooth' : false}
+                followOutput={() => 'auto'}
                 totalCount={props.c.length}
                 itemContent={i => {
                     return <ChatBubble prevJoint={props.c[i + 1]?.uid.trim() === props.c[i]?.uid.trim()} first={i === 0}

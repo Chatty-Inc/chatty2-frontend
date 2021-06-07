@@ -10,11 +10,13 @@ const textDec = async (msg, derivedKey) => {
             name: 'AES-GCM',
             iv: iv,
         };
+        console.log('here')
         const decryptedData = await window.crypto.subtle.decrypt(
             algorithm,
             derivedKey,
             uintArray
         );
+        console.log('ok')
 
         return new TextDecoder().decode(decryptedData);
     } catch(e) {
