@@ -52,18 +52,13 @@ import MsgInput from '../components/MsgInput';
 import NoChatPlaceholder from '../components/NoChatPlaceholder';
 import MsgHistory from '../components/MsgHistory';
 
-// Crypto utilities
-import textEnc from '../lib/crypto/textEnc';
-
-// Encoding utilities
-import arrayToB64 from '../lib/encodings/arrayToB64';
-import b64ToArray from '../lib/encodings/b64ToArray';
-import textDec from '../lib/crypto/textDec';
-
-// Compression/decompression
-import * as lzString from 'lz-string';
-import { useIsMount } from '../hooks/useIsMount';
+// Hashing utilities
 import getHexHash from '../lib/crypto/getHexHash';
+
+// Message utilities
+import receiveMsg from '../lib/msg/receiveMsg';
+import sendMsg from '../lib/msg/sendMsg';
+import { useIsMount } from '../hooks/useIsMount';
 
 const useStyles = makeStyles((theme) => ({
     container: {
@@ -223,7 +218,7 @@ export default function Main(props) {
                     break;
                 case 'txtMsg':
                     const act = () => {
-                        recvMsg(d).then(m => {
+                        receiveMsg(d, keys, signPubKeys).then(m => {
                             const o = { msg: m, uid: d.uid }
                             let oldV = null
                             setCurGid(v => {
@@ -308,167 +303,6 @@ export default function Main(props) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const recvMsg = async d => {
-        // Decrypt AES key
-        const priKey = await window.crypto.subtle.importKey(
-            'jwk', //can be 'jwk' (public or private), 'spki' (public only), or 'pkcs8' (private only)
-            keys.current.pri,
-            {   //these are the algorithm options
-                name: 'RSA-OAEP',
-                hash: {name: 'SHA-512'}, //can be 'SHA-1', 'SHA-256', 'SHA-384', or 'SHA-512'
-            },
-            false, //whether the key is extractable (i.e. can be used in exportKey)
-            ['decrypt'] //'encrypt' or 'wrapKey' for public key import or
-            //'decrypt' or 'unwrapKey' for private key imports
-        );
-        const decKey = await window.crypto.subtle.decrypt(
-            {
-                name: 'RSA-OAEP'
-            },
-            priKey,
-            b64ToArray(lzString.decompressFromUTF16(d.key))
-        );
-
-        // Import the key
-        const k = await window.crypto.subtle.importKey(
-            'raw',
-            decKey,
-            'AES-GCM',
-            true, [
-                'encrypt',
-                'decrypt'
-            ]
-        );
-
-        const raw = await textDec({
-            data: d.data,
-            iv: lzString.decompressFromUTF16(d.iv)
-        }, k);
-
-        // Check signature
-        // First see if the public key is present
-        if (!signPubKeys || !signPubKeys[d.uid])
-            return 'The public keys required to verify this message are missing. Please recreate this chat.'
-
-        const signPub = await window.crypto.subtle.importKey(
-            'jwk', //can be 'jwk' (public or private), "spki" (public only), or "pkcs8" (private only)
-            signPubKeys[d.uid],
-            {   //these are the algorithm options
-                name: 'ECDSA',
-                namedCurve: 'P-521', //can be "P-256", "P-384", or "P-521"
-            },
-            false, //whether the key is extractable (i.e. can be used in exportKey)
-            ['verify'] //"verify" for public key import, "sign" for private key imports
-        );
-        const ok = await window.crypto.subtle.verify(
-            {
-                name: 'ECDSA',
-                hash: {name: 'SHA-512'}, //can be "SHA-1", "SHA-256", "SHA-384", or "SHA-512"
-            },
-            signPub, //from generateKey or importKey above
-            b64ToArray(lzString.decompressFromUTF16(d.sig)), //ArrayBuffer of the signature
-            new TextEncoder().encode(JSON.stringify({
-                data: d.data,
-                iv: d.iv,
-                gid: d.gid,
-                id: d.target,
-
-                key: d.key,
-                act: 'sendTxt',
-            })) //ArrayBuffer of the data
-        );
-        if (!ok) return 'Failed to verify authenticity of this message';
-
-        // Finally, decompress message
-        return lzString.decompressFromUTF16(raw);
-    }
-
-    const sendMsg = async (gID, target) => {
-        const k = await window.crypto.subtle.generateKey({
-                name: 'AES-GCM',
-                length: 256
-            },
-            true, [
-                'encrypt',
-                'decrypt'
-            ]
-        );
-
-        // Compress and Encrypt message payload
-        const {data, iv} = await textEnc(lzString.compressToUTF16(msg.trim()), k);
-
-        // Encrypt AES key
-        // First export it
-        const e = await window.crypto.subtle.exportKey(
-            'raw',
-            k
-        );
-
-        // The below code requires the public key
-        const requirement = async (k) => {
-            // Then encrypt it with RSA
-            const pubKey = await window.crypto.subtle.importKey(
-                'jwk', // can be 'jwk' (public or private), 'spki' (public only), or 'pkcs8' (private only)
-                k,
-                {   // these are the algorithm options
-                    name: 'RSA-OAEP',
-                    hash: {name: 'SHA-512'}, //can be 'SHA-1', 'SHA-256', 'SHA-384', or 'SHA-512'
-                },
-                false, //whether the key is extractable (i.e. can be used in exportKey)
-                ['encrypt'] //'encrypt' or 'wrapKey' for public key import or
-                //'decrypt' or 'unwrapKey' for private key imports
-            )
-
-            const encKey = await window.crypto.subtle.encrypt(
-                {
-                    name: 'RSA-OAEP'
-                },
-                pubKey,
-                e
-            );
-
-            const partial = {
-                data: data,
-                iv: lzString.compressToUTF16(iv),
-                gid: gID,
-                id: target,
-
-                key: lzString.compressToUTF16(arrayToB64(encKey)),
-                act: 'sendTxt',
-            }
-
-            const signPri = await window.crypto.subtle.importKey(
-                'jwk', //can be 'jwk' (public or private), "spki" (public only), or "pkcs8" (private only)
-                signKeys.current.priSign,
-                {   //these are the algorithm options
-                    name: 'ECDSA',
-                    namedCurve: 'P-521', //can be "P-256", "P-384", or "P-521"
-                },
-                false, //whether the key is extractable (i.e. can be used in exportKey)
-                ['sign'] //"verify" for public key import, "sign" for private key imports
-            );
-            const signature = await window.crypto.subtle.sign(
-                {
-                    name: 'ECDSA',
-                    hash: {name: 'SHA-512'}, //can be "SHA-1", "SHA-256", "SHA-384", or "SHA-512"
-                },
-                signPri, //from generateKey or importKey above
-                new TextEncoder().encode(JSON.stringify(partial)) //ArrayBuffer of data you want to sign
-            )
-
-            await send(JSON.stringify({...partial, sig: lzString.compressToUTF16(arrayToB64(signature))}));
-        }
-
-        // Retrieve private key if not already downloaded
-        if (!pubKeys.current[target]) {
-            await send(JSON.stringify({
-                act: 'getPub',
-                uid: target
-            }));
-            awaitingSend.current = {uid: target, act: requirement}
-        } else await requirement(pubKeys.current[target]);
-    }
-
     const _handleSend = () => {
         const tm = msg.trim();
         if (tm.length !== 0) {
@@ -476,7 +310,7 @@ export default function Main(props) {
                 msg: tm,
                 uid: usrUID
             }]);
-            sendMsg(curGid, chatList[curGid].people[0]).then(() => {
+            sendMsg(curGid, chatList[curGid].people[0], msg, signKeys, pubKeys, awaitingSend, send).then(() => {
                 setMsg('');
             });
         }
@@ -580,7 +414,7 @@ export default function Main(props) {
                                 ? <>
                                     <ListItem button divider ContainerComponent='div' >
                                         <ListItemAvatar><Avatar><ImageIcon/></Avatar></ListItemAvatar>
-                                        <ListItemText primary={chatList[curGid].name} secondary='Changhoa, Zerui & You'/>
+                                        <ListItemText primary={chatList[curGid].name} secondary={chatList[curGid].people.join(', ') + ' & You'}/>
                                         <ListItemSecondaryAction>
                                             <IconButton edge='end' aria-label='' id='more-btn' aria-controls='more-menu'
                                                         onClick={e => setMenuAnchor(e.currentTarget)} sx={{mr: 0.0001}}>

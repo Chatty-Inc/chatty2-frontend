@@ -18,7 +18,7 @@ export default function themeOptions(mode) {
         },
         typography: {
             fontFamily: [
-                '"Noto Sans"',
+                'Poppins',
                 'Roboto',
                 '-apple-system',
                 'BlinkMacSystemFont',

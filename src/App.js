@@ -12,8 +12,8 @@ import OnBoarding from './pages/Onboarding';
 import Loading from './components/Loading';
 
 // Fonts
-import '@fontsource/noto-sans/400.css';
-import '@fontsource/noto-sans/700.css';
+import '@fontsource/poppins/400.css';
+import '@fontsource/poppins/700.css';
 
 const ss = new SecureStorage();
 
