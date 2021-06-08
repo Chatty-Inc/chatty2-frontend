@@ -3,7 +3,7 @@ import {
     Button,
     Dialog,
     IconButton,
-    ListItemAvatar, ListSubheader,
+    ListItemAvatar, ListItemSecondaryAction, ListSubheader,
     Paper,
     Slide,
     Switch, Tabs,
@@ -32,6 +32,7 @@ import PeopleRoundedIcon from '@material-ui/icons/PeopleRounded';
 import UploadRoundedIcon from '@material-ui/icons/UploadRounded';
 
 import { useState } from 'react';
+import { CancelRounded } from '@material-ui/icons';
 
 const drawerWidth = 240;
 
@@ -66,12 +67,21 @@ export default function ChatSettings(props) {
 
     const permissions = [
         {title: 'General Permissions'},
-        {title: 'Administrator', desc: 'Grant user all permissions'},
-        {title: 'Create Invite', desc: 'Allows members to create a chat invite for others to join the chat'},
+        {title: 'Manage Roles', desc: 'Edit and create roles (what you\'re doing now)', key: 1},
+
+        {title: 'Member Permissions'},
+        {title: 'Create Invite', desc: 'Create a chat invite for others to join the chat', key: 2},
+        {title: 'Kick Members', desc: 'Remove members from the chat', key: 3},
+        {title: 'Ban Members', desc: 'Permanently block a member from the chat', key: 4},
 
         {title: 'Text Permissions'},
-        {title: 'Delete Messages', desc: 'Allows members to delete their own messages'},
-        {title: 'Manage Messages', desc: 'Allows members to delete other\'s messages and pin messages'},
+        {title: 'Send Messages', desc: 'Send text messages in the chat', key: 5},
+        {title: 'Attach Files', desc: 'Send messages with attachments (i.e. images, videos etc.)', key: 6},
+        {title: 'Delete Messages', desc: 'Allows members to delete their own messages', key: 7},
+        {title: 'Manage Messages', desc: 'Allows members to delete other\'s messages and pin messages', key: 8},
+
+        {title: 'Advanced Permissions'},
+        {title: 'Administrator', desc: 'Grant user all permissions', key: 0},
     ]
 
     const [selSubItem, setSelSubItem] = useState(0),
@@ -310,7 +320,14 @@ export default function ChatSettings(props) {
                                     </Box>
 
                                     <TabPanel index='appear' value={roleTab}>
-                                        <TextField variant='filled' label='Role Name' value={roles[selRole].name} fullWidth />
+                                        <Typography gutterBottom>Name</Typography>
+                                        <TextField variant='filled' label='Role Name' sx={{mb: 2}}
+                                                   value={roles[selRole].name} fullWidth />
+                                        <Divider sx={{mb: 2}} />
+                                        <Typography gutterBottom>Display Color</Typography>
+                                        <Box>
+
+                                        </Box>
                                     </TabPanel>
 
                                     <TabPanel index='perms' value={roleTab}>
@@ -318,8 +335,8 @@ export default function ChatSettings(props) {
                                         <List sx={{pb: 0}}>
                                             {
                                                 permissions.map(perm => {
-                                                    const id = perm.title.replace(' ', '')
-                                                    return <ListItem key={perm.title} sx={perm.desc ? {} : {py: 0}} disableGutters>
+                                                    const id = (perm.key ?? perm.title.replace(' ', '')).toString();
+                                                    return <ListItem key={id} sx={perm.desc ? {} : {py: 0}} disableGutters>
                                                         <ListItemText id={id + '-disc'}
                                                                       secondaryTypographyProps={perm.desc ? {} : {
                                                                           variant: 'button',
@@ -347,7 +364,27 @@ export default function ChatSettings(props) {
                                         </List>
                                     </TabPanel>
 
-                                    <TabPanel index='usrMgmt' value={roleTab}>Item Three</TabPanel>
+                                    <TabPanel index='usrMgmt' value={roleTab}>
+                                        <Typography>People who have this row:</Typography>
+                                        <List sx={{pb: 0}}>
+                                            <ListItem disableGutters>
+                                                <ListItemText>A person</ListItemText>
+                                                <ListItemSecondaryAction>
+                                                    <IconButton>
+                                                        <CancelRounded />
+                                                    </IconButton>
+                                                </ListItemSecondaryAction>
+                                            </ListItem>
+                                            <ListItem disableGutters>
+                                                <ListItemText>Another person</ListItemText>
+                                                <ListItemSecondaryAction>
+                                                    <IconButton>
+                                                        <CancelRounded />
+                                                    </IconButton>
+                                                </ListItemSecondaryAction>
+                                            </ListItem>
+                                        </List>
+                                    </TabPanel>
                                 </Box>
                             </Paper>
                         </Box>
