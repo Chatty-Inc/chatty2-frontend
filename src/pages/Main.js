@@ -59,6 +59,7 @@ import getHexHash from '../lib/crypto/getHexHash';
 import receiveMsg from '../lib/msg/receiveMsg';
 import sendMsg from '../lib/msg/sendMsg';
 import { useIsMount } from '../hooks/useIsMount';
+import ChatSettings from '../components/ChatSettings';
 
 const useStyles = makeStyles((theme) => ({
     container: {
@@ -112,6 +113,8 @@ export default function Main(props) {
         [newTitle, setNewTitle] = useState(''),
         [diff, setDiff] = useState(0),
         [addVal, setAddVal] = useState({name: '', gid: ''}),
+        [chatSettingOpen, setChatSettingOpen] = useState(false),
+        [cSettingData, setCSettingData] = useState({}),
         pubKeys = useRef({}),
         keys = useRef({}),
         signKeys = useRef({}),
@@ -160,8 +163,6 @@ export default function Main(props) {
             }, 10);
             return nc;
         });
-
-
     }, [curGid]);
 
     // WebSocket utility functions
@@ -412,7 +413,13 @@ export default function Main(props) {
                         {
                             curGid
                                 ? <>
-                                    <ListItem button divider ContainerComponent='div' >
+                                    <ListItem button divider ContainerComponent='div'
+                                              onClick={() => {
+                                                  setCSettingData({
+                                                      name: chatList[curGid].name,
+                                                  });
+                                                  setChatSettingOpen(true);
+                                              }}>
                                         <ListItemAvatar><Avatar><ImageIcon/></Avatar></ListItemAvatar>
                                         <ListItemText primary={chatList[curGid].name} secondary={chatList[curGid].people.join(', ') + ' & You'}/>
                                         <ListItemSecondaryAction>
@@ -602,6 +609,8 @@ export default function Main(props) {
                     }
                 </DialogActions>
             </Dialog>
+
+            <ChatSettings open={chatSettingOpen} so={setChatSettingOpen} d={cSettingData} />
 
             <Snackbar open={snackbar.open} autoHideDuration={3000}
                       onClose={() => setSnackbar({...snackbar, open: false})}>

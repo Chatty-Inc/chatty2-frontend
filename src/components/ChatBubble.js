@@ -25,7 +25,7 @@ const useStyles = makeStyles((theme) => ({
     msgBubble: {
         width: 'fit-content',
         maxWidth: '80%',
-        padding: `${theme.spacing(.5)} ${theme.spacing(1.25)}`,
+        padding: `${theme.spacing(.6)} ${theme.spacing(1.4)}`,
         boxShadow: theme.shadows[3],
         overflow: 'hidden',
         '&>p': {
@@ -163,7 +163,7 @@ const UserAvatar = p => {
                 </ListItem>
                 <ListItem button>
                     <ListItemIcon><VerifiedUserRoundedIcon /></ListItemIcon>
-                    <ListItemText>Verify Public Signing Key</ListItemText>
+                    <ListItemText>Verify Signing Key</ListItemText>
                 </ListItem>
                 <ListItem button>
                     <ListItemIcon><BlockRoundedIcon /></ListItemIcon>
@@ -194,9 +194,8 @@ function ChatBubble(p) {
             [classes.fromOther]: !fromUsr,
             [classes.nextJoint]: nextJoint,
         })}>
-            <Typography variant='caption'>{uid}</Typography>
+            <Typography variant='caption' color='text.secondary'>{uid}</Typography>
             <Typography><Linkify options={{defaultProtocol: 'https', target: {url: '_blank'}}}>{msg}</Linkify></Typography>
-
         </div>
 
         { !nextJoint && <UserAvatar uid={uid} fromUsr={fromUsr}/> }
