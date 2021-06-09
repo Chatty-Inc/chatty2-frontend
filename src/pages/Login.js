@@ -20,6 +20,8 @@ const generateTextShadow = count => {
     return shadows.join(',');
 }
 
+const NUM_DOTS = 100;
+
 const useStyles = makeStyles((theme) => ({
     container: {
         font: '5vmin/1.3 Serif',
@@ -45,31 +47,31 @@ const useStyles = makeStyles((theme) => ({
             height: '3em',
             content: '"."',
             mixBlendMode: 'screen',
-            animation: '128s -27s $move infinite ease-in-out alternate',
+            animation: '56s -44s $move infinite ease-in-out alternate',
         },
     },
     holderA: {
         '&::before': {
-            textShadow: generateTextShadow(50),
-            animationDuration: '44s',
-            animationDelay: '-27s',
+            textShadow: generateTextShadow(NUM_DOTS),
+            animationDuration: '108s',
+            animationDelay: '-72s',
         },
         '&::after': {
-            textShadow: generateTextShadow(50),
-            animationDuration: '43s',
-            animationDelay: '-32s',
+            textShadow: generateTextShadow(NUM_DOTS),
+            animationDuration: '102s',
+            animationDelay: '-58.5s',
         }
     },
     holderB: {
         '&::before': {
-            textShadow: generateTextShadow(50),
-            animationDuration: '42s',
-            animationDelay: '-23s',
+            textShadow: generateTextShadow(NUM_DOTS),
+            animationDuration: '96s',
+            animationDelay: '-54s',
         },
         '&::after': {
-            textShadow: generateTextShadow(50),
-            animationDuration: '41s',
-            animationDelay: '-19s',
+            textShadow: generateTextShadow(NUM_DOTS),
+            animationDuration: '84s',
+            animationDelay: '-63s',
         }
     },
     '@keyframes move': {
@@ -104,7 +106,8 @@ export default function Login(props) {
         </div>
         <div style={{minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center',
             position: 'absolute', left: 0, top: 0, zIndex: 2, width: '100%'}}>
-            <Card elevation={12} sx={{padding: 2, minWidth: 300}}>
+            <Card elevation={12} sx={{padding: 2, minWidth: 300, backgroundColor: 'transparent',
+                backdropFilter: 'brightness(.3) saturate(2)'}}>
                 <Typography variant='h3' mb={.5}>Login</Typography>
                 <Typography gutterBottom>to Chatty</Typography>
 
