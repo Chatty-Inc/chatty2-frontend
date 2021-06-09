@@ -84,7 +84,7 @@ const sendMsg = async (gID, target, msg, signKeys, pubKeys, awaitingSend, send) 
             act: 'getPub',
             uid: target
         }));
-        awaitingSend.current = {uid: target, act: requirement}
+        awaitingSend.current[target] = requirement;
     } else await requirement(pubKeys.current[target]);
 }
 

@@ -64,9 +64,10 @@ import ChatSettings from '../components/ChatSettings';
 const useStyles = makeStyles((theme) => ({
     container: {
         minHeight: 'calc(100vh - 64px)',
-        display: 'flex',
-        alignItems: 'stretch',
         padding: theme.spacing(2),
+        display: 'grid',
+        gridTemplateColumns: '350px auto',
+        gridGap: theme.spacing(1.5),
     },
     code: {
         backgroundColor: theme.palette.background.paper,
@@ -120,7 +121,7 @@ export default function Main(props) {
         signKeys = useRef({}),
         ws = useRef(),
         msgScroller = useRef(),
-        awaitingSend = useRef(null),
+        awaitingSend = useRef({}),
         signKeyAct = useRef({}),
         usrMenuOpen = Boolean(uMenuAnchor),
         menuOpen = Boolean(menuAnchor);
@@ -137,6 +138,14 @@ export default function Main(props) {
 
     const verifySignKey = async (uid, p) => {
         setSignVerifyData({uid: uid, key: p, hash: await getHexHash(p), open: true, mode: 0});
+    }
+
+    const requestSignKey = async uid => {
+        if (signPubKeys[uid]) return;
+        await send(JSON.stringify({
+            act: 'getSignPub',
+            target: uid
+        }));
     }
 
     useEffect(() => {
@@ -229,19 +238,25 @@ export default function Main(props) {
                             if (!chatData[d.gid]) chatData[d.gid] = [];
                             if (d.gid === oldV) setChats(ov => [...ov, o]);
                             else chatData[d.gid].push(o);
+                            console.log(o);
                         });
                     }
                     // Silly workaround to access the latest value of a state in a event handler
+                    let once = true;
                     setChatList(ov => {
+                        if (!once) return;
+                        once = false;
+
                         if (ov[d.gid]) {
-                            act()
+                            act();
                             return ov;
                         }
-                        send(JSON.stringify({
-                            act: 'getSignPub',
-                            target: d.uid
-                        }));
-                        signKeyAct.current = {uid: d.uid, act: act};
+                        if (signPubKeys[d.uid]) act();
+                        else {
+                            requestSignKey(d.uid).then();
+                            signKeyAct.current = {uid: d.uid, act: act};
+                        }
+
                         return {...ov, [d.gid]: {
                             name: 'Unknown chat', people: [d.uid]
                         }}
@@ -252,7 +267,10 @@ export default function Main(props) {
                         ...pubKeys.current,
                         [d.uid]: d.pub
                     }
-                    if (awaitingSend.current && awaitingSend.current.uid === d.uid && awaitingSend.current.act) awaitingSend.current.act(d.pub);
+                    if (awaitingSend.current && awaitingSend.current[d.uid]) {
+                        awaitingSend.current[d.uid](d.pub);
+                        delete awaitingSend.current[d.uid];
+                    }
                     break;
                 case 'signKey':
                     if (!signPubKeys) signPubKeys = {};
@@ -311,8 +329,10 @@ export default function Main(props) {
                 msg: tm,
                 uid: usrUID
             }]);
-            sendMsg(curGid, chatList[curGid].people[0], msg, signKeys, pubKeys, awaitingSend, send).then(() => {
-                setMsg('');
+            setMsg('');
+
+            chatList[curGid].people.forEach(member => {
+                sendMsg(curGid, member, msg, signKeys, pubKeys, awaitingSend, send).then(() => console.log('Sent to', member));
             });
         }
     }
@@ -352,8 +372,7 @@ export default function Main(props) {
 
                 <div className={classes.container}>
                     <Card sx={{
-                        width: 400,
-                        mr: 1,
+                        width: 350,
                         display: 'grid',
                         gridTemplateRows: 'auto 1fr auto',
                         maxHeight: 'calc(100vh - 98px)'
@@ -393,7 +412,7 @@ export default function Main(props) {
                             open={usrMenuOpen}
                             onClose={_handleUMenuClose}
                             sx={{'& .MuiSvgIcon-root': { color: 'text.secondary', marginRight: 1.5 }}}
-                            PaperProps={{ style: { minWidth: 350 } }}
+                            PaperProps={{ style: { minWidth: 300 } }}
                             anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                             transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
                             <MenuItem onClick={_handleUMenuClose}><PersonRoundedIcon /> Profile</MenuItem>
@@ -408,7 +427,7 @@ export default function Main(props) {
                         </Menu>
                     </Card>
 
-                    <Card sx={{flexGrow: 1, ml: 1, position: 'relative', display: 'flex', flexDirection: 'column'}}
+                    <Card sx={{flexGrow: 1, position: 'relative', display: 'flex', flexDirection: 'column'}}
                           elevation={6}>
                         {
                             curGid
@@ -421,7 +440,8 @@ export default function Main(props) {
                                                   setChatSettingOpen(true);
                                               }}>
                                         <ListItemAvatar><Avatar><ImageIcon/></Avatar></ListItemAvatar>
-                                        <ListItemText primary={chatList[curGid].name} secondary={chatList[curGid].people.join(', ') + ' & You'}/>
+                                        <ListItemText secondaryTypographyProps={{noWrap: true, mr: 2}}
+                                            primary={chatList[curGid].name} secondary={chatList[curGid].people.join(', ') + ' & You'}/>
                                         <ListItemSecondaryAction>
                                             <IconButton edge='end' aria-label='' id='more-btn' aria-controls='more-menu'
                                                         onClick={e => setMenuAnchor(e.currentTarget)} sx={{mr: 0.0001}}>
@@ -495,10 +515,7 @@ export default function Main(props) {
                                 people: [addVal.gid]
                             }
                         });
-                        send(JSON.stringify({
-                            act: 'getSignPub',
-                            target: addVal.gid
-                        }));
+                        requestSignKey(addVal.gid);
                         _handleAddClose();
                     }}>Add</Button>
                 </DialogActions>
@@ -610,7 +627,8 @@ export default function Main(props) {
                 </DialogActions>
             </Dialog>
 
-            <ChatSettings open={chatSettingOpen} so={setChatSettingOpen} d={cSettingData} />
+            <ChatSettings open={chatSettingOpen} so={setChatSettingOpen} cg={curGid} cl={chatList} sCl={setChatList}
+                          d={cSettingData} rsk={requestSignKey}/>
 
             <Snackbar open={snackbar.open} autoHideDuration={3000}
                       onClose={() => setSnackbar({...snackbar, open: false})}>
