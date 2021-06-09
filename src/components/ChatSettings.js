@@ -445,14 +445,14 @@ export default function ChatSettings(props) {
                         <Typography variant='button'>Manage members</Typography>
                         <List>
                             {cg &&
-                            cl[cg].people.map(uid => <ListItem disableGutters>
+                            cl[cg].people.map(uid => <ListItem disableGutters key={uid}>
                                 <ListItemText>{uid}</ListItemText>
                                 <ListItemSecondaryAction>
                                     <Box display='flex' alignItems='center'>
                                         <AvatarGroup max={roles.length}>
                                             {
                                                 roles.map(r => {
-                                                    return <Tooltip title={r.name}>
+                                                    return <Tooltip title={r.name} key={r.name}>
                                                         <Avatar sx={{
                                                             width: 24,
                                                             height: 24,

@@ -432,6 +432,7 @@ export default function Main(props) {
                         {
                             curGid
                                 ? <>
+                                <Tooltip title='Open chat settings'>
                                     <ListItem button divider ContainerComponent='div'
                                               onClick={() => {
                                                   setCSettingData({
@@ -441,7 +442,7 @@ export default function Main(props) {
                                               }}>
                                         <ListItemAvatar><Avatar><ImageIcon/></Avatar></ListItemAvatar>
                                         <ListItemText secondaryTypographyProps={{noWrap: true, mr: 2}}
-                                            primary={chatList[curGid].name} secondary={chatList[curGid].people.join(', ') + ' & You'}/>
+                                                      primary={chatList[curGid].name} secondary={chatList[curGid].people.join(', ') + ' & You'}/>
                                         <ListItemSecondaryAction>
                                             <IconButton edge='end' aria-label='' id='more-btn' aria-controls='more-menu'
                                                         onClick={e => setMenuAnchor(e.currentTarget)} sx={{mr: 0.0001}}>
@@ -477,6 +478,7 @@ export default function Main(props) {
                                             </Menu>
                                         </ListItemSecondaryAction>
                                     </ListItem>
+                                </Tooltip>
 
                                     <MsgHistory c={chats} uid={usrUID} r={msgScroller}/>
 
