@@ -22,6 +22,7 @@ export default function themeOptions(mode) {
                 'Roboto',
                 '-apple-system',
                 'BlinkMacSystemFont',
+                'system-ui',
                 '"Segoe UI"',
                 'Roboto',
                 '"Helvetica Neue"',

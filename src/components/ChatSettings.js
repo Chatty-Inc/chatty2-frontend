@@ -306,7 +306,7 @@ export default function ChatSettings(props) {
                 <>
                     <Typography variant='h4' gutterBottom>Roles</Typography>
                     <Typography variant='subtitle1' gutterBottom>
-                        Edit and create user roles to manage permissions of
+                        Edit and create user roles to manage permissions of members in this chat
                     </Typography>
                     <Divider/>
 

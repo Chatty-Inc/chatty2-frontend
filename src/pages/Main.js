@@ -28,7 +28,7 @@ import {
     Snackbar,
     Alert,
     Menu,
-    MenuItem,
+    MenuItem, ButtonBase, Paper, Collapse, Box, Fade,
 } from '@material-ui/core';
 
 // Icons
@@ -60,13 +60,15 @@ import receiveMsg from '../lib/msg/receiveMsg';
 import sendMsg from '../lib/msg/sendMsg';
 import { useIsMount } from '../hooks/useIsMount';
 import ChatSettings from '../components/ChatSettings';
+import { KeyboardArrowLeftRounded, SignalCellularNodataRounded } from '@material-ui/icons';
+import clsx from 'clsx';
 
 const useStyles = makeStyles((theme) => ({
     container: {
         minHeight: 'calc(100vh - 64px)',
         padding: theme.spacing(2),
         display: 'grid',
-        gridTemplateColumns: '350px auto',
+        gridTemplateColumns: 'auto 1fr',
         gridGap: theme.spacing(1.5),
     },
     code: {
@@ -77,6 +79,13 @@ const useStyles = makeStyles((theme) => ({
         margin: `${theme.spacing(.5)} ${theme.spacing(.4)}`,
         display: 'block',
         fontFamily: 'Courier'
+    },
+    minimizeArrow: {
+        transform: 'rotate(0deg)',
+        transition: theme.transitions.create('transform'),
+    },
+    rotatedArrow: {
+        transform: 'rotate(180deg)',
     }
 }));
 
@@ -116,6 +125,8 @@ export default function Main(props) {
         [addVal, setAddVal] = useState({name: '', gid: ''}),
         [chatSettingOpen, setChatSettingOpen] = useState(false),
         [cSettingData, setCSettingData] = useState({}),
+        [cListMinimized, setCListMinimized] = useState(false),
+        [cListAnimComplete, setCListAnimComplete] = useState(false),
         pubKeys = useRef({}),
         keys = useRef({}),
         signKeys = useRef({}),
@@ -124,6 +135,7 @@ export default function Main(props) {
         awaitingSend = useRef({}),
         signKeyAct = useRef({}),
         usrMenuOpen = Boolean(uMenuAnchor),
+        [disableMsgInput, setDisableMsgInput] = useState({disabled: false}),
         menuOpen = Boolean(menuAnchor);
 
     const isMt = useIsMount();
@@ -141,6 +153,10 @@ export default function Main(props) {
     }
 
     const requestSignKey = async uid => {
+        if (!signPubKeys) {
+            signPubKeys = {};
+            syncSignKeys();
+        }
         if (signPubKeys[uid]) return;
         await send(JSON.stringify({
             act: 'getSignPub',
@@ -174,14 +190,22 @@ export default function Main(props) {
         });
     }, [curGid]);
 
+    useEffect(() => {
+        if (conState === 2) {
+            setDisableMsgInput({disabled: false});
+        }
+        else setDisableMsgInput({disabled: true, icon: <SignalCellularNodataRounded />, label: 'WebSocket Disconnected'});
+    }, [conState]);
+
     // WebSocket utility functions
     const send = async m => {
         if (!ws || ws.current.readyState !== 1) return false;
         await ws.current.send(m)
     }
     const connect = () => {
-        ws.current = null;
-        ws.current = new WebSocket('wss://api.chattyapp.cf');
+        // ws.current = null;
+
+        ws.current = new WebSocket('wss://api.chattyapp.cf:443');
 
         let int = null
         let lastTime = +new Date();
@@ -354,85 +378,123 @@ export default function Main(props) {
                         <Typography variant='h6' component='div' sx={{flexGrow: 1, ml: 2.5}}>
                             Chatty
                         </Typography>
-                        <Card sx={{padding: '4px 12px', display: 'flex', alignItems: 'center'}} elevation={4}>
-                            <div style={{
-                                width: 10, height: 10, borderRadius: '50%', marginRight: '8px',
-                                backgroundColor: conStates[conState].col
-                            }}/>
-                            <Typography variant='subtitle1'>{conStates[conState].label} • RT: {diff}ms</Typography>
-                        </Card>
-                        <IconButton edge='end' color='inherit' aria-label='lock' sx={{ml: 1.5}}
-                                    onClick={() => {
 
-                                    }}>
-                            <LockRoundedIcon/>
-                        </IconButton>
+                        <ButtonBase sx={{borderRadius: theme => theme.shape.borderRadius + 'px'}}>
+                            <Paper sx={{padding: '4px 12px', display: 'flex', alignItems: 'center'}} elevation={4}>
+                                <div style={{
+                                    width: 10, height: 10, borderRadius: '50%', marginRight: '8px',
+                                    backgroundColor: conStates[conState].col
+                                }}/>
+                                <Typography variant='subtitle1'>{conStates[conState].label} • RT: {diff}ms</Typography>
+                            </Paper>
+                        </ButtonBase>
+
+                        <Box display='flex' ml={1.5}>
+                            <Tooltip title='Settings'>
+                                <IconButton edge='end' color='inherit' aria-label='lock' sx={{m: .001}} onClick={() => {
+
+                                            }}>
+                                    <SettingsRoundedIcon />
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title='Lock vault'>
+                                <IconButton edge='end' color='inherit' aria-label='lock' onClick={() => {
+
+                                            }}>
+                                    <LockRoundedIcon />
+                                </IconButton>
+                            </Tooltip>
+                        </Box>
                     </Toolbar>
                 </AppBar>
 
                 <div className={classes.container}>
-                    <Card sx={{
-                        width: 350,
-                        display: 'grid',
-                        gridTemplateRows: 'auto 1fr auto',
-                        maxHeight: 'calc(100vh - 98px)'
-                    }}
-                          elevation={6}>
-                        <div style={{display: 'flex', alignItems: 'center', width: '100%', padding: '10px'}}>
-                            <TextField variant='outlined' label='Search' value={query}
-                                       onChange={e => setQuery(e.target.value)} sx={{flexGrow: 1, mr: 1}}/>
-                            <Fab color='secondary' aria-label='add' size='medium'
-                                 onClick={() => setAddDialogOpen(true)}>
-                                <AddRoundedIcon/>
-                            </Fab>
-                        </div>
-
-                        <ChatsList cl={chatList} sg={setCurGid} cg={curGid} q={query} pk={signPubKeys} />
-
-                        <Divider/>
-                        <ListItem button ContainerComponent='div' id='u-acc-btn' onClick={e => setUMenuAnchor(e.currentTarget)}>
-                            <ListItemIcon><AccountCircleRoundedIcon/></ListItemIcon>
-                            <ListItemText primary='Your Account'/>
-                            <ListItemSecondaryAction>
-                                <Tooltip title='Copy your UID'>
-                                    <IconButton edge='end' aria-label='' sx={{mr: 0.0001}} onClick={() => {
-                                        navigator.clipboard.writeText(usrUID).then(() =>
-                                            setSnackbar({open: true, msg: 'Copied UID!', type: 'success'}))
-                                    }}>
-                                        <ContentCopyRoundedIcon/>
-                                    </IconButton>
-                                </Tooltip>
-                            </ListItemSecondaryAction>
-                        </ListItem>
-
-                        <Menu
-                            id='u-acct-menu'
-                            aria-labelledby='u-acc-btn'
-                            anchorEl={uMenuAnchor}
-                            open={usrMenuOpen}
-                            onClose={_handleUMenuClose}
-                            sx={{'& .MuiSvgIcon-root': { color: 'text.secondary', marginRight: 1.5 }}}
-                            PaperProps={{ style: { minWidth: 300 } }}
-                            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-                            transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-                            <MenuItem onClick={_handleUMenuClose}><PersonRoundedIcon /> Profile</MenuItem>
-                            <MenuItem onClick={_handleUMenuClose}><SettingsRoundedIcon /> Account Settings</MenuItem>
-                            <MenuItem onClick={async () => {
-                                setSignVerifyData({uid: null, key: null,
-                                    hash: await getHexHash(signKeys.current.pubSign), open: true, mode: 1});
-                                _handleUMenuClose();
+                    <Paper elevation={6} sx={{overflow: 'hidden'}}>
+                        <Collapse in={!cListMinimized} collapsedSize={64} orientation='horizontal'
+                                  onExiting={() => setCListAnimComplete(false)} onExited={() => setCListAnimComplete(true)}>
+                            <Box sx={{
+                                width: 350,
+                                display: 'grid',
+                                gridTemplateRows: 'auto 1fr auto',
+                                maxHeight: 'calc(100vh - 98px)',
+                                height: 'calc(100vh - 98px)'
                             }}>
-                                <VerifiedUserRoundedIcon /> Verify Sign Key
-                            </MenuItem>
-                        </Menu>
-                    </Card>
+                                <div style={{display: 'grid', gridTemplateColumns: '1fr auto', alignItems:
+                                        'center', width: 'max-content', padding: '10px'}}>
+                                    <Collapse in={!cListMinimized} orientation='horizontal'
+                                              sx={{'& .MuiCollapse-wrapperInner': {flex: 1}}}>
+                                        <div style={{display: 'flex', alignItems: 'center', width: 'fit-content'}}>
+                                            <TextField variant='outlined' label='Search' value={query}
+                                                       onChange={e => setQuery(e.target.value)} sx={{flexGrow: 1, mr: 1, width: '236px'}}/>
+                                            <Tooltip title='Create new chat'>
+                                                <Fab color='secondary' aria-label='add' size='medium'
+                                                     onClick={() => setAddDialogOpen(true)}>
+                                                    <AddRoundedIcon/>
+                                                </Fab>
+                                            </Tooltip>
+                                        </div>
+                                    </Collapse>
 
-                    <Card sx={{flexGrow: 1, position: 'relative', display: 'flex', flexDirection: 'column'}}
+                                    <Tooltip title={(cListMinimized ? 'Un-m' : 'M') + 'inimise chat list'}>
+                                        <IconButton size='small' sx={{ml: 1}} onClick={() => setCListMinimized(v => !v)}>
+                                            <KeyboardArrowLeftRounded
+                                                className={clsx(classes.minimizeArrow, {[classes.rotatedArrow]: cListMinimized})} />
+                                        </IconButton>
+                                    </Tooltip>
+                                </div>
+
+                                <ChatsList cl={chatList} sg={setCurGid} cg={curGid} cv={cListMinimized} ac={cListAnimComplete}
+                                           q={query} pk={signPubKeys} />
+
+                                { (!cListMinimized || !cListAnimComplete) &&
+                                    <>
+                                        <Divider/>
+                                        <ListItem button ContainerComponent='div' id='u-acc-btn' onClick={e => setUMenuAnchor(e.currentTarget)}>
+                                            <ListItemIcon><AccountCircleRoundedIcon/></ListItemIcon>
+                                            <ListItemText primary='Your Account'/>
+                                            <ListItemSecondaryAction>
+                                                <Tooltip title='Copy your UID'>
+                                                    <IconButton edge='end' aria-label='' sx={{mr: 0.0001}} onClick={() => {
+                                                        navigator.clipboard.writeText(usrUID).then(() =>
+                                                            setSnackbar({open: true, msg: 'Copied UID!', type: 'success'}))
+                                                    }}>
+                                                        <ContentCopyRoundedIcon/>
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </ListItemSecondaryAction>
+                                        </ListItem>
+                                    </>
+                                }
+
+                                <Menu
+                                    id='u-acct-menu'
+                                    aria-labelledby='u-acc-btn'
+                                    anchorEl={uMenuAnchor}
+                                    open={usrMenuOpen}
+                                    onClose={_handleUMenuClose}
+                                    sx={{'& .MuiSvgIcon-root': { color: 'text.secondary', marginRight: 1.5 }}}
+                                    PaperProps={{ style: { minWidth: 300 } }}
+                                    anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                                    transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                                    <MenuItem onClick={_handleUMenuClose}><PersonRoundedIcon /> Profile</MenuItem>
+                                    <MenuItem onClick={_handleUMenuClose}><SettingsRoundedIcon /> Account Settings</MenuItem>
+                                    <MenuItem onClick={async () => {
+                                        setSignVerifyData({uid: null, key: null,
+                                            hash: await getHexHash(signKeys.current.pubSign), open: true, mode: 1});
+                                        _handleUMenuClose();
+                                    }}>
+                                        <VerifiedUserRoundedIcon /> Verify Sign Key
+                                    </MenuItem>
+                                </Menu>
+                            </Box>
+                        </Collapse>
+                    </Paper>
+
+                    <Paper sx={{flexGrow: 1, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden'}}
                           elevation={6}>
                         {
                             curGid
                                 ? <>
-                                <Tooltip title='Open chat settings'>
                                     <ListItem button divider ContainerComponent='div'
                                               onClick={() => {
                                                   setCSettingData({
@@ -478,15 +540,14 @@ export default function Main(props) {
                                             </Menu>
                                         </ListItemSecondaryAction>
                                     </ListItem>
-                                </Tooltip>
 
                                     <MsgHistory c={chats} uid={usrUID} r={msgScroller}/>
 
-                                    <MsgInput m={msg} sm={setMsg} send={_handleSend}/>
+                                    <MsgInput m={msg} sm={setMsg} send={_handleSend} disableState={disableMsgInput} />
                                 </>
                                 : <NoChatPlaceholder />
                         }
-                    </Card>
+                    </Paper>
                 </div>
             </div>
 
@@ -497,10 +558,10 @@ export default function Main(props) {
                 onClose={_handleAddClose}
                 aria-labelledby='ac-d-t'
                 aria-describedby='ac-d-d'>
-                <DialogTitle id='ac-d-t'>Add/Join a Chat</DialogTitle>
+                <DialogTitle id='ac-d-t'>Create a new Chat!</DialogTitle>
                 <DialogContent>
                     <DialogContentText id='ac-d-d'>
-                        Enter your recipient's UID here. This identifier does not need to be kept private.
+                        Enter the UID of your first member. You can add others later.
                     </DialogContentText>
                     <TextField variant='filled' sx={{width: '100%'}} label='Name' value={addVal.name}
                                onChange={e => setAddVal({...addVal, name: e.target.value})}/>

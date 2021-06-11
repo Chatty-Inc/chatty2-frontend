@@ -14,6 +14,7 @@ import Loading from './components/Loading';
 // Fonts
 import '@fontsource/poppins/400.css';
 import '@fontsource/poppins/700.css';
+import '@fontsource/source-sans-pro/400.css';
 
 const ss = new SecureStorage();
 

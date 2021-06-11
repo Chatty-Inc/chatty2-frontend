@@ -1,4 +1,4 @@
-import { Avatar, List, ListItem, ListItemAvatar, ListItemText } from '@material-ui/core';
+import { Avatar, List, ListItem, ListItemAvatar, ListItemText, Tooltip } from '@material-ui/core';
 import ImageIcon from '@material-ui/icons/Image';
 import NoChatPlaceholder from './NoChatPlaceholder';
 
@@ -12,14 +12,18 @@ function ChatsList(props) {
             {
                 keys.length !== 0
                     ? keys.map((k => {
-                        return <ListItem button selected={props.cg === k} key={k} divider onClick={() => props.sg(k)}>
-                            <ListItemAvatar>
-                                <Avatar>
-                                    <ImageIcon />
-                                </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText primary={props.cl[k]?.name} secondary='Changhoa: Hm' />
-                        </ListItem>
+                        return <Tooltip title={props.cl[k]?.name} placement='right'>
+                            <ListItem button selected={props.cg === k} key={k} divider dense={props.cv && props.ac}
+                                      sx={(props.cv && props.ac) ? {padding: '.25rem .75rem', width: '64px', height: '64px'} : {}}
+                                      onClick={() => props.sg(k)}>
+                                <ListItemAvatar>
+                                    <Avatar>
+                                        <ImageIcon />
+                                    </Avatar>
+                                </ListItemAvatar>
+                                <ListItemText primary={props.cl[k]?.name} secondary='Changhoa: Hm' />
+                            </ListItem>
+                        </Tooltip>
                     }))
                     : ( props.q.trim().length === 0
                     ? <NoChatPlaceholder addChat />

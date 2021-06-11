@@ -15,7 +15,7 @@ import clsx from 'clsx';
 const generateTextShadow = count => {
     const shadows = []
     for (let i = 0; i < count; i++) {
-        shadows.push(`${(-.5 + Math.random()) * 3}em ${(-.5 + Math.random()) * 3}em 7px hsla(${Math.random() * 360},100%,50%,.9)`);
+        shadows.push(`${(-.5 + Math.random()) * 3}em ${(-.5 + Math.random()) * 3}em 8px hsla(${Math.random() * 360},100%,50%,.9)`);
     }
     return shadows.join(',');
 }
