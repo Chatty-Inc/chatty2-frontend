@@ -1,22 +1,22 @@
 {
   "files": {
-    "main.css": "./static/css/main.506ed6f0.chunk.css",
-    "main.js": "./static/js/main.f0262095.chunk.js",
-    "runtime-main.js": "./static/js/runtime-main.90211959.js",
+    "main.css": "./static/css/main.f117b039.chunk.css",
+    "main.js": "./static/js/main.83b2ebf7.chunk.js",
+    "runtime-main.js": "./static/js/runtime-main.c0649e97.js",
     "static/css/2.d18ffeb7.chunk.css": "./static/css/2.d18ffeb7.chunk.css",
-    "static/js/2.95476206.chunk.js": "./static/js/2.95476206.chunk.js",
-    "static/js/3.0063eaf6.chunk.js": "./static/js/3.0063eaf6.chunk.js",
+    "static/js/2.f6f9aa30.chunk.js": "./static/js/2.f6f9aa30.chunk.js",
+    "static/js/3.4077a1bf.chunk.js": "./static/js/3.4077a1bf.chunk.js",
     "index.html": "./index.html",
-    "static/js/2.95476206.chunk.js.LICENSE.txt": "./static/js/2.95476206.chunk.js.LICENSE.txt",
+    "static/js/2.f6f9aa30.chunk.js.LICENSE.txt": "./static/js/2.f6f9aa30.chunk.js.LICENSE.txt",
     "static/media/icon.7a29522d.svg": "./static/media/icon.7a29522d.svg",
     "static/media/400.css": "./static/media/source-sans-pro-vietnamese-400-normal.6b777020.woff2",
     "static/media/700.css": "./static/media/poppins-latin-ext-700-normal.ecb421af.woff2"
   },
   "entrypoints": [
-    "static/js/runtime-main.90211959.js",
+    "static/js/runtime-main.c0649e97.js",
     "static/css/2.d18ffeb7.chunk.css",
-    "static/js/2.95476206.chunk.js",
-    "static/css/main.506ed6f0.chunk.css",
-    "static/js/main.f0262095.chunk.js"
+    "static/js/2.f6f9aa30.chunk.js",
+    "static/css/main.f117b039.chunk.css",
+    "static/js/main.83b2ebf7.chunk.js"
   ]
 }
