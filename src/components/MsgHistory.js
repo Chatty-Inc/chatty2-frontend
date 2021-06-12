@@ -23,7 +23,7 @@ function MsgHistory(props) {
                 itemContent={i => {
                     return <ChatBubble prevJoint={props.c[i + 1]?.uid.trim() === props.c[i]?.uid.trim()} first={i === 0}
                                        nextJoint={props.c[i - 1]?.uid.trim() === props.c[i]?.uid.trim()} last={i === props.c.length - 1}
-
+                                       grpTitle={props.gl[props.cg].name}
                                        userUID={props.uid} uid={props.c[i]?.uid} msg={props.c[i]?.msg} key={i}/>
                 }} />
         </div>

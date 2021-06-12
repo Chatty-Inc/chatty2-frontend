@@ -66,6 +66,7 @@ const receiveMsg = async (d, keys, signPubKeys) => {
             iv: d.iv,
             gid: d.gid,
             id: d.target,
+            purpose: d.purpose,
 
             key: d.key,
             act: 'sendTxt',
@@ -74,7 +75,10 @@ const receiveMsg = async (d, keys, signPubKeys) => {
     if (!ok) return 'Failed to verify authenticity of this message';
 
     // Finally, decompress message
-    return lzString.decompressFromUTF16(raw);
+    return {
+        content: lzString.decompressFromUTF16(raw),
+        purpose: d.purpose,
+    };
 }
 
 export default receiveMsg;

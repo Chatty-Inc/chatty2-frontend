@@ -253,7 +253,7 @@ export default function Main(props) {
                 case 'txtMsg':
                     const act = () => {
                         receiveMsg(d, keys, signPubKeys).then(m => {
-                            const o = { msg: m, uid: d.uid }
+                            const o = { msg: m.content, uid: d.uid, type: m.purpose }
                             let oldV = null
                             setCurGid(v => {
                                 oldV = v;
@@ -356,7 +356,7 @@ export default function Main(props) {
             setMsg('');
 
             chatList[curGid].people.forEach(member => {
-                sendMsg(curGid, member, msg, signKeys, pubKeys, awaitingSend, send).then(() => console.log('Sent to', member));
+                sendMsg(curGid, member, msg, 'txt', signKeys, pubKeys, awaitingSend, send).then(() => console.log('Sent to', member));
             });
         }
     }
@@ -385,7 +385,7 @@ export default function Main(props) {
                                     width: 10, height: 10, borderRadius: '50%', marginRight: '8px',
                                     backgroundColor: conStates[conState].col
                                 }}/>
-                                <Typography variant='subtitle1'>{conStates[conState].label} • RT: {diff}ms</Typography>
+                                <Typography variant='subtitle1'>{conStates[conState].label}{conState === 2 && <> • RT: {diff}ms</>}</Typography>
                             </Paper>
                         </ButtonBase>
 
@@ -416,8 +416,8 @@ export default function Main(props) {
                                 width: 350,
                                 display: 'grid',
                                 gridTemplateRows: 'auto 1fr auto',
-                                maxHeight: 'calc(100vh - 98px)',
-                                height: 'calc(100vh - 98px)'
+                                maxHeight: 'calc(100vh - 96px)',
+                                height: 'calc(100vh - 96px)'
                             }}>
                                 <div style={{display: 'grid', gridTemplateColumns: '1fr auto', alignItems:
                                         'center', width: 'max-content', padding: '10px'}}>
@@ -541,9 +541,9 @@ export default function Main(props) {
                                         </ListItemSecondaryAction>
                                     </ListItem>
 
-                                    <MsgHistory c={chats} uid={usrUID} r={msgScroller}/>
+                                    <MsgHistory c={chats} uid={usrUID} r={msgScroller} cg={curGid} gl={chatList} />
 
-                                    <MsgInput m={msg} sm={setMsg} send={_handleSend} disableState={disableMsgInput} />
+                                    <MsgInput m={msg} sm={setMsg} send={_handleSend} disableState={disableMsgInput} n={chatList[curGid].name}/>
                                 </>
                                 : <NoChatPlaceholder />
                         }

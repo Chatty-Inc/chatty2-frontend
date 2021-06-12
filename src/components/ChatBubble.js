@@ -3,7 +3,7 @@ import { memo, useState } from 'react';
 import {
     Avatar,
     Badge,
-    Box, List,
+    Box, Chip, Divider, List,
     ListItem, ListItemIcon,
     ListItemText,
     makeStyles,
@@ -20,6 +20,7 @@ import EditRoundedIcon from '@material-ui/icons/EditRounded';
 import VerifiedUserRoundedIcon from '@material-ui/icons/VerifiedUserRounded';
 
 import Linkify from 'linkifyjs/react';
+import { AddRounded } from '@material-ui/icons';
 
 const useStyles = makeStyles((theme) => ({
     msgBubble: {
@@ -115,6 +116,20 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
     }
 }));
 
+const dummyRoles = [
+    {name: 'Owner', color: '#fbc02d'},
+    {name: 'Wang', color: '#1e88e5'},
+    {name: 'Lol', color: '#ef5350'},
+    {name: 'Testers', color: '#ab47bc'},
+    {name: 'Die-no', color: '#4caf50'},
+    {name: 'A very long role that will be truncated', color: '#26a69a'},
+    {name: 'Lower roles have less priority', color: '#78909c'},
+]
+
+const ChipItem = styled('li')(({ theme }) => ({
+    margin: theme.spacing(.25),
+}));
+
 const UserAvatar = p => {
     const [infoTarget, setInfoTarget] = useState(null),
         infoOpen = Boolean(infoTarget);
@@ -132,7 +147,7 @@ const UserAvatar = p => {
             anchorEl={infoTarget}
             onClose={() => setInfoTarget(null)}
             PaperProps={{
-                style: {width: 250, transform: `translateX(${p.fromUsr ? -16 : 16}px)`},
+                sx: {width: 300, transform: `translateX(${p.fromUsr ? -16 : 16}px)`, position: 'relative', backgroundImage: 'none'},
             }}
             anchorOrigin={{
                 vertical: 'center',
@@ -142,34 +157,64 @@ const UserAvatar = p => {
                 vertical: 'center',
                 horizontal: p.fromUsr ? 'right' : 'left',
             }}>
-            <Box sx={{bgcolor: 'background.paper', overflow: 'hidden', display: 'flex', flexDirection: 'column'}}>
-                <Tooltip title='Online'>
-                    <Badge sx={{m: '16px auto'}} badgeContent=' ' color='success'
-                           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} overlap='circular'>
-                        <Avatar sx={{width: 80, height: 80}}/>
-                    </Badge>
-                </Tooltip>
+            <Box sx={{bgcolor: 'primary.main', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: 30, width: 'inherit'}} />
 
-                <Typography align='center'>{p.uid}</Typography>
-                <Typography align='center' variant='subtitle2' color='text.secondary' gutterBottom>User status goes here</Typography>
-            </Box>
+            <Tooltip title='Online'>
+                <Badge sx={{position: 'absolute', top: 16, left: 16, borderRadius: '50%',
+                    border: t => `6px solid ${t.palette.background.default}`,
+                    '& > span.MuiBadge-badge': {border: t => `6px solid ${t.palette.background.default}`,
+                        width: 28, height: 28, borderRadius: '50%'}}} badgeContent=' ' color='success'
+                       anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} overlap='circular'>
+                    <Avatar sx={{width: 80, height: 80}}/>
+                </Badge>
+            </Tooltip>
+
+            <Typography align='center' p='64px 16px 0' fontWeight={700}>{p.uid}</Typography>
+            <Typography align='center' variant='subtitle2' color='text.secondary' gutterBottom>User status goes here</Typography>
+
+            <Divider />
+            <Typography variant='overline' fontWeight={700} mx={2}>Roles</Typography>
+            <ul style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                listStyle: 'none',
+                padding: 8,
+                paddingTop: 0,
+                margin: 0,
+            }}>
+                {
+                    dummyRoles.map(r => {
+                        return <ChipItem key={r.name}>
+                            <Chip
+                                variant="outlined"
+                                sx={{'& span.MuiChip-label': {textOverflow: 'ellipsis', maxWidth: 80}, borderColor: r.color}}
+                                size='small'
+                                label={r.name}
+                                onDelete={() => {}}
+                            />
+                        </ChipItem>
+                    })
+                }
+                <ChipItem>
+                    <div style={{width: 24, height: 24, borderRadius: '50%', border: '1px solid #616161', marginTop: 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'}}>
+                        <AddRounded sx={{width: 20, height: 20}} />
+                    </div>
+                </ChipItem>
+            </ul>
+            <Divider />
+
             <TextField label='Note' variant='filled' sx={{m: 1, width: 'calc(100% - 16px)'}}/>
+
+            <Divider />
             <List sx={{p: 0}} dense>
+                <ListItem button>
+                    <ListItemIcon><AddRounded /></ListItemIcon>
+                    <ListItemText>Create Chat</ListItemText>
+                </ListItem>
                 <ListItem button>
                     <ListItemIcon><PersonRoundedIcon /></ListItemIcon>
                     <ListItemText>View Profile</ListItemText>
-                </ListItem>
-                <ListItem button>
-                    <ListItemIcon><EditRoundedIcon /></ListItemIcon>
-                    <ListItemText>Edit Info</ListItemText>
-                </ListItem>
-                <ListItem button>
-                    <ListItemIcon><VerifiedUserRoundedIcon /></ListItemIcon>
-                    <ListItemText>Verify Signing Key</ListItemText>
-                </ListItem>
-                <ListItem button>
-                    <ListItemIcon><BlockRoundedIcon /></ListItemIcon>
-                    <ListItemText>Block</ListItemText>
                 </ListItem>
             </List>
         </Popover>
@@ -181,27 +226,37 @@ function ChatBubble(p) {
     console.log(p);
     const classes = useStyles();
 
-    const { msg, uid, userUID, prevJoint, nextJoint, first, last } = p;
+    const { msg, uid, userUID, prevJoint, nextJoint, first, last, grpTitle } = p;
     const fromUsr = uid === userUID
-    return <div className={clsx(classes.holder,
+    return <>
         {
-            [classes.noPadding]: nextJoint,
-            [classes.first]: first,
-            [classes.last]: last,
-        })}>
-        <div className={clsx(classes.msgBubble, {
-            [classes.usrJoint]: fromUsr && nextJoint,
-            [classes.otherJoint]: !fromUsr && prevJoint,
-            [classes.fromUsr]: fromUsr,
-            [classes.fromOther]: !fromUsr,
-            [classes.nextJoint]: nextJoint,
-        })}>
-            <Typography variant='caption' color='text.secondary'>{uid}</Typography>
-            <Typography><Linkify options={{defaultProtocol: 'https', target: {url: '_blank'}}}>{msg}</Linkify></Typography>
-        </div>
+            first && <div style={{padding: '.5rem 1rem'}}>
+                <Avatar sx={{width: 96, height: 96, mt: 1}} />
+                <Typography variant='h3' my={1} fontWeight={700} fontSize={36}>{grpTitle}</Typography>
+                <Typography color='text.secondary' gutterBottom>This is the start of the {grpTitle} chat.</Typography>
+                <Divider />
+            </div>
+        }
+        <div className={clsx(classes.holder,
+            {
+                [classes.noPadding]: nextJoint,
+                [classes.first]: first,
+                [classes.last]: last,
+            })}>
+            <div className={clsx(classes.msgBubble, {
+                [classes.usrJoint]: fromUsr && nextJoint,
+                [classes.otherJoint]: !fromUsr && prevJoint,
+                [classes.fromUsr]: fromUsr,
+                [classes.fromOther]: !fromUsr,
+                [classes.nextJoint]: nextJoint,
+            })}>
+                <Typography variant='caption' color='text.secondary'>{uid}</Typography>
+                <Typography><Linkify options={{defaultProtocol: 'https', target: {url: '_blank'}}}>{msg}</Linkify></Typography>
+            </div>
 
-        { !nextJoint && <UserAvatar uid={uid} fromUsr={fromUsr}/> }
-    </div>
+            { !nextJoint && <UserAvatar uid={uid} fromUsr={fromUsr}/> }
+        </div>
+    </>
 }
 
 export default memo(ChatBubble)

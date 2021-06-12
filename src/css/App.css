@@ -1,3 +1,7 @@
 div.MuiDialog-container {
     backdrop-filter: blur(4px);
 }
+
+body, html {
+    overflow: hidden;
+}

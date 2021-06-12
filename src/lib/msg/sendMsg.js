@@ -2,7 +2,7 @@ import textEnc from '../crypto/textEnc';
 import * as lzString from 'lz-string';
 import arrayToB64 from '../encodings/arrayToB64';
 
-const sendMsg = async (gID, target, msg, signKeys, pubKeys, awaitingSend, send) => {
+const sendMsg = async (gID, target, msg, purpose, signKeys, pubKeys, awaitingSend, send) => {
     const k = await window.crypto.subtle.generateKey({
             name: 'AES-GCM',
             length: 256
@@ -51,6 +51,7 @@ const sendMsg = async (gID, target, msg, signKeys, pubKeys, awaitingSend, send) 
             iv: lzString.compressToUTF16(iv),
             gid: gID,
             id: target,
+            purpose: purpose,
 
             key: lzString.compressToUTF16(arrayToB64(encKey)),
             act: 'sendTxt',

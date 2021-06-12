@@ -39,7 +39,7 @@ export default function MsgInput(props) {
                     ))}
                 </SpeedDial>
 
-                <TextField variant='filled' multiline label='Type a message' maxRows={5}
+                <TextField variant='filled' multiline label={`Say something awesome in ${props.n}`} maxRows={5}
                            onChange={event => props.sm(event.target.value)}
                            value={props.m}
                            onKeyPress={e => {
@@ -51,7 +51,8 @@ export default function MsgInput(props) {
                            inputProps={
                                {maxLength: 1000}
                            }
-                           sx={{flexGrow: 1, mr: .5, ml: '58px'}}/>
+                           sx={{flexGrow: 1, mr: .5, ml: '58px', '& textarea.MuiInputBase-input':
+                                   {fontFamily: '"Source Sans Pro", system-ui, sans-serif', fontSize: 18}}} />
 
                 <IconButton color='primary' aria-label='send' sx={{mr: .5, mb: .5}} onClick={props.send}>
                     <SendRoundedIcon />

@@ -12,8 +12,8 @@ function ChatsList(props) {
             {
                 keys.length !== 0
                     ? keys.map((k => {
-                        return <Tooltip title={props.cl[k]?.name} placement='right'>
-                            <ListItem button selected={props.cg === k} key={k} divider dense={props.cv && props.ac}
+                        return <Tooltip title={props.cl[k]?.name} placement='right' key={k}>
+                            <ListItem button selected={props.cg === k} divider dense={props.cv && props.ac}
                                       sx={(props.cv && props.ac) ? {padding: '.25rem .75rem', width: '64px', height: '64px'} : {}}
                                       onClick={() => props.sg(k)}>
                                 <ListItemAvatar>

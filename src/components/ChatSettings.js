@@ -259,6 +259,13 @@ export default function ChatSettings(props) {
                             />
                         </ListItem>
                     </List>
+                    <Divider />
+                    <Typography variant='h6' mt={1}>Delete chat</Typography>
+                    <Typography variant='subtitle2' color='text.secondary' mb={1.5}>
+                        Deletes this chat, along with all messages and data.
+                        This action <b>cannot</b> be undone. Proceed with caution.
+                    </Typography>
+                    <Button variant='outlined' color='error'>Delete chat</Button>
                 </>
                 }
                 {selSubItem === 1 &&
