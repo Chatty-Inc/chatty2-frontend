@@ -4,14 +4,20 @@ import SendRoundedIcon from '@material-ui/icons/SendRounded';
 import ImageRoundedIcon from '@material-ui/icons/ImageRounded';
 import CameraAltRoundedIcon from '@material-ui/icons/CameraAltRounded';
 import InsertDriveFileRoundedIcon from '@material-ui/icons/InsertDriveFileRounded';
+import { useRef } from 'react';
 
 export default function MsgInput(props) {
-    const { disableState } = props;
+    const { disableState, send } = props;
+
+    const fInputRef = useRef();
 
     const attachmentActions = [
-        { icon: <ImageRoundedIcon />, name: 'Photos & Videos' },
-        { icon: <CameraAltRoundedIcon />, name: 'Camera' },
-        { icon: <InsertDriveFileRoundedIcon />, name: 'Document' },
+        { icon: <ImageRoundedIcon />, name: 'Photos & Videos', onClick: () => {
+            console.log('photos and videos');
+            fInputRef.current.click();
+        }},
+        { icon: <CameraAltRoundedIcon />, name: 'Camera', onClick: () => {} },
+        { icon: <InsertDriveFileRoundedIcon />, name: 'Document', onClick: () => {} },
     ];
 
     return <>
@@ -24,14 +30,31 @@ export default function MsgInput(props) {
         }
         { (!disableState.disabled || !disableState) &&
             <div style={{display: 'flex', alignItems: 'flex-end', width: '100%'}}>
-            <SpeedDial
-                sx={
+                <input type='file' ref={fInputRef} style={{display: 'none'}}
+                       onChange={e => {
+                           console.log('File picked:', e.currentTarget.files[0]);
+                           const file = e.currentTarget.files[0]
+                           e.currentTarget.value = '';
+                           if ( /\.(jpe?g|png|gif)$/i.test(file.name) ) {
+                               const reader = new FileReader();
+
+                               reader.onload = e => {
+                                   send('img', e.target.result);
+                                   console.log(e.target.result);
+                               };
+
+                               reader.readAsDataURL(file);
+                           }
+                       }} />
+                <SpeedDial
+                    sx={
                         {'&>button': {width: '46px', height: '46px'},
                             position: 'absolute', bottom: 6, left: 1}}
                     ariaLabel='Add an attachment'
                     icon={<SpeedDialIcon icon={<AttachmentRoundedIcon />} />}>
                     {attachmentActions.map((action) => (
                         <SpeedDialAction
+                            onClick={action.onClick}
                             key={action.name}
                             icon={action.icon}
                             tooltipTitle={action.name}

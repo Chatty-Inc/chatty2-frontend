@@ -3,7 +3,7 @@ import {
     Button,
     Dialog,
     IconButton,
-    ListItemAvatar, ListItemSecondaryAction, ListSubheader,
+    ListItemAvatar, ListItemSecondaryAction,
     Paper,
     Slide,
     Switch, Tabs,
@@ -28,7 +28,6 @@ import PublicRoundedIcon from '@material-ui/icons/PublicRounded';
 import CloseRoundedIcon from '@material-ui/icons/CloseRounded';
 import VisibilityRoundedIcon from '@material-ui/icons/VisibilityRounded';
 import LockRoundedIcon from '@material-ui/icons/LockRounded';
-import PeopleRoundedIcon from '@material-ui/icons/PeopleRounded';
 import UploadRoundedIcon from '@material-ui/icons/UploadRounded';
 
 import { useState } from 'react';
@@ -65,7 +64,7 @@ function TabPanel(props) {
 }
 
 export default function ChatSettings(props) {
-    const {d, cg, cl, sCl, rsk} = props;
+    const {d, cg, cl, sCl, rsk, sMeta} = props;
     const drawerItems = [
         {icon: <VisibilityRoundedIcon/>, title: 'Overview'},
         {icon: <LockRoundedIcon/>, title: 'Security'},
@@ -259,13 +258,13 @@ export default function ChatSettings(props) {
                             />
                         </ListItem>
                     </List>
-                    <Divider />
-                    <Typography variant='h6' mt={1}>Delete chat</Typography>
+                    <Divider/>
+                    <Typography variant='h6' mt={1}>Leave chat</Typography>
                     <Typography variant='subtitle2' color='text.secondary' mb={1.5}>
-                        Deletes this chat, along with all messages and data.
+                        Leaves this chat, and permanently deletes chat history stored in your browser.
                         This action <b>cannot</b> be undone. Proceed with caution.
                     </Typography>
-                    <Button variant='outlined' color='error'>Delete chat</Button>
+                    <Button variant='outlined' color='error'>Leave Chat</Button>
                 </>
                 }
                 {selSubItem === 1 &&
@@ -438,6 +437,7 @@ export default function ChatSettings(props) {
                                     sCl(ov => {
                                         const nv = {...ov};
                                         nv[cg].people.push(addUID);
+                                        sMeta(cg, nv);
                                         return nv;
                                     });
                                     rsk(addUID);
@@ -450,37 +450,45 @@ export default function ChatSettings(props) {
 
                         <Divider sx={{my: 2}}/>
                         <Typography variant='button'>Manage members</Typography>
-                        <List>
+                        <List sx={{
+                            '& > li': {
+                                display: 'flex', '& > div.MuiListItem-root': {pr: 1},
+                                '& > div.MuiListItemSecondaryAction-root': {
+                                    transform: 'none', position: 'relative'
+                                }
+                            }
+                        }}>
                             {cg &&
-                            cl[cg].people.map(uid => <ListItem disableGutters key={uid}>
-                                <ListItemText>{uid}</ListItemText>
-                                <ListItemSecondaryAction>
-                                    <Box display='flex' alignItems='center'>
-                                        <AvatarGroup max={roles.length}>
-                                            {
-                                                roles.map(r => {
-                                                    return <Tooltip title={r.name} key={r.name}>
-                                                        <Avatar sx={{
-                                                            width: 24,
-                                                            height: 24,
-                                                            fontSize: 18,
-                                                            background: r.color
-                                                        }}>
-                                                            {r.name.slice(0, 1)}
-                                                        </Avatar>
-                                                    </Tooltip>
-                                                })
-                                            }
-                                        </AvatarGroup>
-                                        <Tooltip title='Ban member'>
-                                            <IconButton sx={{mx: .25}}><BlockRounded/></IconButton>
-                                        </Tooltip>
-                                        <Tooltip title='Remove member'>
-                                            <IconButton sx={{mx: .25}}><PersonRemoveRounded/></IconButton>
-                                        </Tooltip>
-                                    </Box>
-                                </ListItemSecondaryAction>
-                            </ListItem>)
+                            cl[cg].people.map(uid =>
+                                <ListItem disableGutters key={uid}>
+                                    <ListItemText>{uid}{uid === props.uid && <> (You)</>}</ListItemText>
+                                    <ListItemSecondaryAction>
+                                        <Box display='flex' alignItems='center'>
+                                            <AvatarGroup max={roles.length}>
+                                                {
+                                                    roles.map(r => {
+                                                        return <Tooltip title={r.name} key={r.name}>
+                                                            <Avatar sx={{
+                                                                width: 24,
+                                                                height: 24,
+                                                                fontSize: 18,
+                                                                background: r.color
+                                                            }}>
+                                                                {r.name.slice(0, 1)}
+                                                            </Avatar>
+                                                        </Tooltip>
+                                                    })
+                                                }
+                                            </AvatarGroup>
+                                            <Tooltip title='Ban member'>
+                                                <IconButton sx={{mx: .25}}><BlockRounded/></IconButton>
+                                            </Tooltip>
+                                            <Tooltip title='Remove member'>
+                                                <IconButton sx={{mx: .25}}><PersonRemoveRounded/></IconButton>
+                                            </Tooltip>
+                                        </Box>
+                                    </ListItemSecondaryAction>
+                                </ListItem>)
                             }
                         </List>
                     </>

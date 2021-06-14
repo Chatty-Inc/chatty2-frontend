@@ -1,8 +1,10 @@
 import {
     Button,
-    Card, LinearProgress, makeStyles,
+    Card, LinearProgress,
     Typography,
 } from '@material-ui/core';
+
+import { makeStyles } from '@material-ui/styles';
 
 import LoginRoundedIcon from '@material-ui/icons/LoginRounded';
 
@@ -94,10 +96,10 @@ export default function Login(props) {
     const classes = useStyles();
 
     // Auto unlock
-    /*props.ss.unlock('Student01').then(r => {
+    if (window.location.hostname === 'localhost') props.ss.unlock('Student01').then(r => {
         console.log(r)
         if (r) props.sl(true);
-    });*/
+    });
 
     return <>
         <div className={classes.container}>

@@ -57,6 +57,8 @@ const sendMsg = async (gID, target, msg, purpose, signKeys, pubKeys, awaitingSen
             act: 'sendTxt',
         }
 
+        console.log(partial);
+
         const signPri = await window.crypto.subtle.importKey(
             'jwk', //can be 'jwk' (public or private), "spki" (public only), or "pkcs8" (private only)
             signKeys.current.priSign,

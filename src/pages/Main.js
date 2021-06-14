@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import {v4 as uuid} from 'uuid';
+import { version as uuidVer } from 'uuid';
+import { validate as uuidValid } from 'uuid';
+
+// Logger
+import log from '../lib/logger';
 
 // MUI
 import {
@@ -7,8 +12,6 @@ import {
     Toolbar,
     IconButton,
     Typography,
-    Card,
-    makeStyles,
     TextField,
     ListItemAvatar,
     ListItem,
@@ -28,8 +31,10 @@ import {
     Snackbar,
     Alert,
     Menu,
-    MenuItem, ButtonBase, Paper, Collapse, Box, Fade,
+    MenuItem, ButtonBase, Paper, Collapse, Box,
 } from '@material-ui/core';
+
+import { makeStyles } from '@material-ui/styles';
 
 // Icons
 import AddRoundedIcon from '@material-ui/icons/AddRounded';
@@ -127,11 +132,11 @@ export default function Main(props) {
         [cSettingData, setCSettingData] = useState({}),
         [cListMinimized, setCListMinimized] = useState(false),
         [cListAnimComplete, setCListAnimComplete] = useState(false),
+        [vKey, setVKey] = useState(0),
         pubKeys = useRef({}),
         keys = useRef({}),
         signKeys = useRef({}),
         ws = useRef(),
-        msgScroller = useRef(),
         awaitingSend = useRef({}),
         signKeyAct = useRef({}),
         usrMenuOpen = Boolean(uMenuAnchor),
@@ -152,6 +157,16 @@ export default function Main(props) {
         setSignVerifyData({uid: uid, key: p, hash: await getHexHash(p), open: true, mode: 0});
     }
 
+    const syncCurChatMeta = (gid, cl) => {
+        const cLD = cl || chatList[gid];
+        if (!cLD) return;
+        cLD[gid].people.forEach(member => {
+            if (member === usrUID) return;
+            sendMsg(gid, member, JSON.stringify(cLD[gid]), 'metaUpdate', signKeys, pubKeys, awaitingSend, send)
+                .then(() => log('main', 'Sent meta update to', member))
+        });
+    }
+
     const requestSignKey = async uid => {
         if (!signPubKeys) {
             signPubKeys = {};
@@ -167,27 +182,21 @@ export default function Main(props) {
     useEffect(() => {
         //if (Object.keys(chatList).length === 0) return;
         if (isMt) return;
-        console.log('here')
         ss.setVal('chats', JSON.stringify(chatList)).then();
+        // If the user has 0 chats, un-minimize the chat list
+        if (Object.keys(chatList).length === 0) setCListMinimized(false);
+        // eslint-disable-next-line
     }, [chatList]);
     useEffect(() => {
         if (chats.length === 0) return;
         if (Object.keys(chatData).length === 0) return;
         syncData();
+        // eslint-disable-next-line
     }, [chats]);
     useEffect(() => {
         const nc = chatData[curGid] ?? [];
-        setChats(() => {
-            setTimeout(() => {
-                msgScroller.current?.scrollToIndex({
-                    index: nc.length,
-                    align: 'bottom',
-                    behavior: 'auto'
-                });
-                console.log('scrolling', nc.length);
-            }, 10);
-            return nc;
-        });
+        setChats(nc);
+        setVKey(v => ++v);
     }, [curGid]);
 
     useEffect(() => {
@@ -244,37 +253,53 @@ export default function Main(props) {
                 return;
             }
 
-            console.log(d);
+            log('main', 'Received WebSocket message:', JSON.stringify(d));
 
             switch (d.resp) {
                 case 'pong':
                     setDiff(new Date() - lastTime);
                     break;
                 case 'txtMsg':
-                    const act = () => {
-                        receiveMsg(d, keys, signPubKeys).then(m => {
-                            const o = { msg: m.content, uid: d.uid, type: m.purpose }
-                            let oldV = null
-                            setCurGid(v => {
-                                oldV = v;
-                                return v
-                            });
-                            if (!chatData[d.gid]) chatData[d.gid] = [];
-                            if (d.gid === oldV) setChats(ov => [...ov, o]);
-                            else chatData[d.gid].push(o);
-                            console.log(o);
-                        });
-                    }
                     // Silly workaround to access the latest value of a state in a event handler
                     let once = true;
                     setChatList(ov => {
-                        if (!once) return;
+                        // Ok I totally forgot how this code works
+                        if (!once) return {...ov, [d.gid]: {
+                            name: 'Unknown chat', people: [d.uid]
+                        }};
                         once = false;
+
+                        const act = () => {
+                            receiveMsg(d, keys, signPubKeys).then(m => {
+                                const o = { msg: m.content, uid: d.uid, purpose: m.purpose };
+
+                                if (!ov[d.gid].people.includes(o.uid)) return; // Fixes UID bug
+                                if (o.purpose === 'txt' || o.purpose === 'img') {
+                                    let oldV = null;
+                                    setCurGid(v => {
+                                        oldV = v;
+                                        return v
+                                    });
+                                    if (!chatData[d.gid]) chatData[d.gid] = [];
+                                    if (d.gid === oldV) setChats(ov => [...ov, o]);
+                                    else chatData[d.gid].push(o);
+                                }
+                                else if (o.purpose === 'metaUpdate') {
+                                    const nm = JSON.parse(o.msg)
+                                    setChatList(v => {
+                                        return {...v, [d.gid]: nm};
+                                    });
+                                    nm.people.forEach(uid => requestSignKey(uid));
+                                }
+                            });
+                        }
 
                         if (ov[d.gid]) {
                             act();
                             return ov;
                         }
+                        if (!signPubKeys) signPubKeys = {};
+                        if (!chatData[d.gid]) chatData[d.gid] = [];
                         if (signPubKeys[d.uid]) act();
                         else {
                             requestSignKey(d.uid).then();
@@ -328,10 +353,8 @@ export default function Main(props) {
             const pubSign = await ss.getVal('signPub');
             const priSign = await ss.getVal('signPri');
             signKeys.current = {pubSign, priSign};
-            console.log(signKeys.current);
 
             signPubKeys = await ss.getVal('signKeys');
-            console.log(signPubKeys);
 
             usrUID = await ss.getVal('uid');
 
@@ -346,17 +369,23 @@ export default function Main(props) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const _handleSend = () => {
-        const tm = msg.trim();
+    const _handleSend = (purpose = 'txt', content = null) => {
+        let tm;
+        if (content) tm = content;
+        else tm = msg.trim();
+
         if (tm.length !== 0) {
             setChats([...chats, {
                 msg: tm,
-                uid: usrUID
+                uid: usrUID,
+                purpose
             }]);
             setMsg('');
+            syncData();
 
             chatList[curGid].people.forEach(member => {
-                sendMsg(curGid, member, msg, 'txt', signKeys, pubKeys, awaitingSend, send).then(() => console.log('Sent to', member));
+                if (member === usrUID) return;
+                sendMsg(curGid, member, tm, purpose, signKeys, pubKeys, awaitingSend, send).then(() => log('main', 'Sent to', member));
             });
         }
     }
@@ -372,7 +401,7 @@ export default function Main(props) {
     return (
         <>
             <div style={{minHeight: '100vh'}}>
-                <AppBar position='relative'>
+                <AppBar position='relative' elevation={18}>
                     <Toolbar>
                         <img src={appIcon} width={32} height={32} alt='' />
                         <Typography variant='h6' component='div' sx={{flexGrow: 1, ml: 2.5}}>
@@ -435,11 +464,16 @@ export default function Main(props) {
                                         </div>
                                     </Collapse>
 
-                                    <Tooltip title={(cListMinimized ? 'Un-m' : 'M') + 'inimise chat list'}>
-                                        <IconButton size='small' sx={{ml: 1}} onClick={() => setCListMinimized(v => !v)}>
-                                            <KeyboardArrowLeftRounded
-                                                className={clsx(classes.minimizeArrow, {[classes.rotatedArrow]: cListMinimized})} />
-                                        </IconButton>
+                                    <Tooltip title={Object.keys(chatList).length === 0
+                                        ? 'Add your first chat by clicking on the + button!'
+                                        : (cListMinimized ? 'Un-m' : 'M') + 'inimise chat list'}>
+                                        <span>
+                                            <IconButton size='small' sx={{ml: 1}} disabled={Object.keys(chatList).length === 0}
+                                                        onClick={() => setCListMinimized(v => !v)}>
+                                                <KeyboardArrowLeftRounded
+                                                    className={clsx(classes.minimizeArrow, {[classes.rotatedArrow]: cListMinimized})} />
+                                            </IconButton>
+                                        </span>
                                     </Tooltip>
                                 </div>
 
@@ -504,7 +538,7 @@ export default function Main(props) {
                                               }}>
                                         <ListItemAvatar><Avatar><ImageIcon/></Avatar></ListItemAvatar>
                                         <ListItemText secondaryTypographyProps={{noWrap: true, mr: 2}}
-                                                      primary={chatList[curGid].name} secondary={chatList[curGid].people.join(', ') + ' & You'}/>
+                                                      primary={chatList[curGid].name} secondary={chatList[curGid].people.join(', ')}/>
                                         <ListItemSecondaryAction>
                                             <IconButton edge='end' aria-label='' id='more-btn' aria-controls='more-menu'
                                                         onClick={e => setMenuAnchor(e.currentTarget)} sx={{mr: 0.0001}}>
@@ -541,9 +575,10 @@ export default function Main(props) {
                                         </ListItemSecondaryAction>
                                     </ListItem>
 
-                                    <MsgHistory c={chats} uid={usrUID} r={msgScroller} cg={curGid} gl={chatList} />
+                                    <MsgHistory c={chats} uid={usrUID} cg={curGid} gl={chatList} vKey={vKey} />
 
-                                    <MsgInput m={msg} sm={setMsg} send={_handleSend} disableState={disableMsgInput} n={chatList[curGid].name}/>
+                                    <MsgInput m={msg} sm={setMsg} send={_handleSend}
+                                              disableState={disableMsgInput} n={chatList[curGid].name}/>
                                 </>
                                 : <NoChatPlaceholder />
                         }
@@ -572,11 +607,22 @@ export default function Main(props) {
                 <DialogActions>
                     <Button onClick={_handleAddClose}>Close</Button>
                     <Button onClick={() => {
-                        setChatList({
-                            ...chatList, [uuid()]: {
-                                name: addVal.name,
-                                people: [addVal.gid]
+                        // Check if the UUID provided is valid
+                        if (!uuidValid(addVal.gid) || !(uuidVer(addVal.gid) === 4)) return;
+
+                        const nGid = uuid();
+                        let first = true;
+                        setCurGid(nGid);
+                        setChatList(ov => {
+                            const uVal = {
+                                ...ov, [nGid]: {
+                                    name: addVal.name,
+                                    people: [addVal.gid, usrUID]
+                                }
                             }
+                            if (first) syncCurChatMeta(nGid, uVal);
+                            first = false;
+                            return uVal;
                         });
                         requestSignKey(addVal.gid);
                         _handleAddClose();
@@ -611,7 +657,6 @@ export default function Main(props) {
                         setChats([]);
                         requestAnimationFrame(() => {
                             delete chatData[gid];
-                            console.log(chatData);
                             syncData(true);
                         })
                         _handleDelClose();
@@ -637,9 +682,12 @@ export default function Main(props) {
                 <DialogActions>
                     <Button onClick={_handleChangeTitleClose}>Cancel</Button>
                     <Button onClick={() => {
+                        let first = true;
                         setChatList(val => {
                             const dupe = {...val};
                             dupe[curGid].name = newTitle;
+                            if (first) syncCurChatMeta(curGid, dupe);
+                            first = false;
                             return dupe
                         })
                         _handleChangeTitleClose()
@@ -691,7 +739,7 @@ export default function Main(props) {
             </Dialog>
 
             <ChatSettings open={chatSettingOpen} so={setChatSettingOpen} cg={curGid} cl={chatList} sCl={setChatList}
-                          d={cSettingData} rsk={requestSignKey}/>
+                          d={cSettingData} rsk={requestSignKey} uid={usrUID} sMeta={syncCurChatMeta}/>
 
             <Snackbar open={snackbar.open} autoHideDuration={3000}
                       onClose={() => setSnackbar({...snackbar, open: false})}>

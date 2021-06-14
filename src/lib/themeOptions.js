@@ -1,4 +1,4 @@
-import { createTheme } from "@material-ui/core/styles";
+import { createTheme } from '@material-ui/core';
 
 export default function themeOptions(mode) {
     if (mode !== 'dark' && mode !== 'light') mode = 'dark';
@@ -77,5 +77,7 @@ body.light ::-webkit-scrollbar-track, body.light ::-webkit-scrollbar-corner {
             },
         }
     }
-    return (createTheme(options));
+    const t = createTheme(options);
+    t.shape.borderRadius = 7; // Fix some random bug
+    return t;
 }

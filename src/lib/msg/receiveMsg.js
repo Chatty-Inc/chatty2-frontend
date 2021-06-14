@@ -42,7 +42,7 @@ const receiveMsg = async (d, keys, signPubKeys) => {
     // Check signature
     // First see if the public key is present
     if (!signPubKeys || !signPubKeys[d.uid])
-        return 'The public keys required to verify this message are missing. Please recreate this chat.'
+        return { content: 'The public keys required to verify this message are missing. Please recreate this chat.', purpose: 'txt' }
 
     const signPub = await window.crypto.subtle.importKey(
         'jwk', //can be 'jwk' (public or private), "spki" (public only), or "pkcs8" (private only)
@@ -72,7 +72,7 @@ const receiveMsg = async (d, keys, signPubKeys) => {
             act: 'sendTxt',
         })) //ArrayBuffer of the data
     );
-    if (!ok) return 'Failed to verify authenticity of this message';
+    if (!ok) return { content: 'Failed to verify authenticity of this message', purpose: 'txt' };
 
     // Finally, decompress message
     return {

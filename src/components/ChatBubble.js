@@ -1,12 +1,13 @@
 import clsx from 'clsx';
 import { memo, useState } from 'react';
+
+import { makeStyles } from '@material-ui/styles';
 import {
     Avatar,
     Badge,
-    Box, Chip, Divider, List,
+    Box, Button, ButtonBase, Chip, Dialog, DialogActions, DialogContent, Divider, IconButton, List,
     ListItem, ListItemIcon,
     ListItemText,
-    makeStyles,
     Popover, TextField,
     Tooltip,
     Typography
@@ -15,12 +16,10 @@ import { experimentalStyled as styled } from '@material-ui/core/styles';
 
 // Icons
 import PersonRoundedIcon from '@material-ui/icons/PersonRounded';
-import BlockRoundedIcon from '@material-ui/icons/BlockRounded';
-import EditRoundedIcon from '@material-ui/icons/EditRounded';
-import VerifiedUserRoundedIcon from '@material-ui/icons/VerifiedUserRounded';
 
 import Linkify from 'linkifyjs/react';
-import { AddRounded } from '@material-ui/icons';
+import { AddRounded, DeleteForeverRounded, DownloadRounded } from '@material-ui/icons';
+import SitePreviewCard from './SitePreviewCard';
 
 const useStyles = makeStyles((theme) => ({
     msgBubble: {
@@ -157,7 +156,7 @@ const UserAvatar = p => {
                 vertical: 'center',
                 horizontal: p.fromUsr ? 'right' : 'left',
             }}>
-            <Box sx={{bgcolor: 'primary.main', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: 30, width: 'inherit'}} />
+            <Box sx={{bgcolor: 'primary.main', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: 60, width: 'inherit'}} />
 
             <Tooltip title='Online'>
                 <Badge sx={{position: 'absolute', top: 16, left: 16, borderRadius: '50%',
@@ -222,13 +221,36 @@ const UserAvatar = p => {
 }
 
 
-function ChatBubble(p) {
-    console.log(p);
+const ChatBubble = memo(({ msg, uid, userUID, prevJoint, nextJoint, first, last, grpTitle, purpose, sb }) => {
     const classes = useStyles();
 
-    const { msg, uid, userUID, prevJoint, nextJoint, first, last, grpTitle } = p;
+    const [mediaDialogOpen, setMediaDialogOpen] = useState(false),
+    [links, setLinks] = useState([]);
+
     const fromUsr = uid === userUID
     return <>
+        <Dialog open={mediaDialogOpen} onClose={() => setMediaDialogOpen(false)}>
+            <DialogContent sx={{paddingBottom: 0}}>
+                <img src={msg} alt='' style={{maxWidth: '100%', minWidth: '100px', borderRadius: 7}} draggable={false} />
+                <Typography maxWidth='fit-content' variant='subtitle2'>
+                    Image Caption
+                </Typography>
+            </DialogContent>
+            <DialogActions sx={{pt: 0}}>
+                <Button onClick={() => setMediaDialogOpen(false)}>Close</Button>
+                <div style={{flexGrow: 1}} />
+                <Tooltip title='Download Media'>
+                    <IconButton href={msg} download={`Media from ${grpTitle}`}>
+                        <DownloadRounded />
+                    </IconButton>
+                </Tooltip>
+                <Tooltip title='Delete locally stored image'>
+                    <IconButton>
+                        <DeleteForeverRounded />
+                    </IconButton>
+                </Tooltip>
+            </DialogActions>
+        </Dialog>
         {
             first && <div style={{padding: '.5rem 1rem'}}>
                 <Avatar sx={{width: 96, height: 96, mt: 1}} />
@@ -249,14 +271,37 @@ function ChatBubble(p) {
                 [classes.fromUsr]: fromUsr,
                 [classes.fromOther]: !fromUsr,
                 [classes.nextJoint]: nextJoint,
-            })}>
-                <Typography variant='caption' color='text.secondary'>{uid}</Typography>
-                <Typography><Linkify options={{defaultProtocol: 'https', target: {url: '_blank'}}}>{msg}</Linkify></Typography>
+            })}><Typography variant='caption' color='text.secondary'>{uid}</Typography>
+                {
+                    purpose === 'img' &&
+                    <ButtonBase sx={{borderRadius: theme => theme.shape.borderRadius + 'px', width: '-webkit-fill-available',
+                         overflow: 'hidden', mt: '2px', display: 'flex', maxWidth: '100%'}}
+                                onClick={() => setMediaDialogOpen(true)}>
+                        <img src={msg} alt='' style={{width: '100%', minWidth: 50, maxWidth: 600}} draggable={false} />
+                    </ButtonBase>
+                }
+                {
+                    (purpose === 'txt' || purpose === 'img') &&
+                    <Typography mt={purpose === 'img' ? '0!important' : 'inherit'}>
+                        <Linkify options={{defaultProtocol: 'https', target: {url: '_blank'}, formatHref: (href, type) =>
+                            {
+                                setLinks(v => v.includes(href) ? v : [...v, href]);
+                                return href;
+                            }
+                        }}>
+                            {purpose === 'img' ? 'Image caption' : msg}
+                        </Linkify>
+                    </Typography>
+                }
+
+                {
+                    links.map(link => <SitePreviewCard url={link} key={link} sb={sb} />)
+                }
             </div>
 
             { !nextJoint && <UserAvatar uid={uid} fromUsr={fromUsr}/> }
         </div>
     </>
-}
+})
 
-export default memo(ChatBubble)
+export default ChatBubble;
