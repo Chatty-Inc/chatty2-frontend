@@ -1,4 +1,5 @@
 import b64ToArray from '../encodings/b64ToArray';
+import log from '../logger';
 
 const textDec = async (msg, derivedKey) => {
     try {
@@ -10,17 +11,16 @@ const textDec = async (msg, derivedKey) => {
             name: 'AES-GCM',
             iv: iv,
         };
-        console.log('here')
         const decryptedData = await window.crypto.subtle.decrypt(
             algorithm,
             derivedKey,
             uintArray
         );
-        console.log('ok')
 
         return new TextDecoder().decode(decryptedData);
     } catch(e) {
-        console.log(e);
+        // console.log(e);
+        log('textDec', 'Decryption error', e.msg);
         return null;
     }
 };

@@ -11,11 +11,11 @@ import * as lzString from 'lz-string';
 
 export default class SecureStorage {
     constructor() {
-        this.contents = {};
+        // this.contents = {};
     }
 
     async isInit() {
-        return await localforage.getItem('iv') && await localforage.getItem('salt') && await localforage.getItem('data')
+        return !!await localforage.getItem('salt');
     }
 
     async genKey(pw) {
@@ -29,7 +29,7 @@ export default class SecureStorage {
             ['deriveKey']
         );
 
-        console.log(importedPw)
+        // console.log(importedPw)
 
         this.key = await window.crypto.subtle.deriveKey(
             {
@@ -49,39 +49,76 @@ export default class SecureStorage {
     }
 
     async unlock(pw) {
-        const iv = await localforage.getItem('iv');
-
         await this.genKey(pw);
 
-        const encData = await localforage.getItem('data');
+        // const encData = await localforage.getItem('data');
 
-        const dec = await textDec({ data: lzString.decompress(encData), iv: lzString.decompress(iv) }, this.key);
+        const dec = await this.getDoc('private', 'test');
 
-        if (!dec) return false;
+        if (!dec || dec !== 'v') return false;
 
-        this.contents = JSON.parse(lzString.decompressFromUTF16(dec));
-        console.log(this.contents)
+        //if (!dec) return false;
+
+        //this.contents = JSON.parse(lzString.decompressFromUTF16(dec));
+        //console.log(this.contents)
         return true;
     }
 
-    async sync() {
+    /*async sync() {
         const enc = await textEnc(lzString.compressToUTF16(JSON.stringify(this.contents)), this.key);
         await localforage.setItem('data', lzString.compress(enc.data));
         await localforage.setItem('iv', lzString.compress(enc.iv));
+    }*/
+
+    async getDoc(doc, key) {
+        const iv = await localforage.getItem('ssIV_' + doc + '.' + key);
+        const encData = await localforage.getItem('ssData_' + doc + '.' + key);
+
+        const dec = await textDec({ data: lzString.decompress(encData), iv: lzString.decompress(iv) }, this.key);
+
+        if (!dec) return null;
+
+        return JSON.parse(lzString.decompressFromUTF16(dec));
+    }
+
+    async delDoc(doc, key) {
+        await localforage.removeItem('ssIV_' + doc + '.' + key);
+        await localforage.removeItem('ssData_' + doc + '.' + key);
+    }
+
+    async setDoc(doc, key, val) {
+        // const iv = await localforage.getItem('ssIV_' + doc + '.' + key);
+        // const encData = await localforage.getItem('ssData_' + doc + '.' + key);
+
+        const enc = await textEnc(lzString.compressToUTF16(JSON.stringify(val)), this.key);
+
+        if (!enc) return false;
+
+        // Write out
+        await localforage.setItem('ssIV_' + doc + '.' + key, lzString.compress(enc.iv));
+        await localforage.setItem('ssData_' + doc + '.' + key, lzString.compress(enc.data));
+
+        return true;
     }
 
     async init(pw) {
         const salt = arrayToB64(await window.crypto.getRandomValues(new Uint8Array(128)));
         await localforage.setItem('salt', salt);
         await this.genKey(pw);
-        await this.sync();
+        await this.setDoc('private', 'test', 'v');
+        // await this.sync();
     }
 
-    async setVal(key, val) {
-        this.contents[key] = val;
-        await this.sync();
+    async setVal(doc, key, val) {
+        console.error('Depreciated function called with value:', val);
+        console.warn('This is an no-op, but depreciated code should be updated to new APIs asap');
+        // this.contents[key] = val;
+        // await this.sync();
+        return null;
     }
     async getVal(key) {
-        return this.contents[key];
+        console.error('Depreciated function called with key:', key);
+        console.warn('This is an no-op, but depreciated code should be updated to new APIs asap');
+        return null;
     }
 }

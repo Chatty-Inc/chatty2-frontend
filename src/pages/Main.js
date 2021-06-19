@@ -68,6 +68,10 @@ import ChatSettings from '../components/ChatSettings';
 import { KeyboardArrowLeftRounded, SignalCellularNodataRounded } from '@material-ui/icons';
 import clsx from 'clsx';
 
+// Assets
+import defBg from '../assets/bg/defaultBg.webp';
+import ProfileDialog from '../components/ProfileDialog';
+
 const useStyles = makeStyles((theme) => ({
     container: {
         minHeight: 'calc(100vh - 64px)',
@@ -75,6 +79,9 @@ const useStyles = makeStyles((theme) => ({
         display: 'grid',
         gridTemplateColumns: 'auto 1fr',
         gridGap: theme.spacing(1.5),
+        backgroundImage: `url("${defBg}")`,
+        backgroundPosition: 'center',
+        backgroundSize: 'cover',
     },
     code: {
         backgroundColor: theme.palette.background.paper,
@@ -91,10 +98,14 @@ const useStyles = makeStyles((theme) => ({
     },
     rotatedArrow: {
         transform: 'rotate(180deg)',
+    },
+    paper: {
+        background: '#00000077',
+        backdropFilter: 'blur(6px) saturate(1.2)'
     }
 }));
 
-let chatData = {};
+// chatData = {};
 let usrUID = '';
 let signPubKeys = {};
 
@@ -133,6 +144,7 @@ export default function Main(props) {
         [cListMinimized, setCListMinimized] = useState(false),
         [cListAnimComplete, setCListAnimComplete] = useState(false),
         [vKey, setVKey] = useState(0),
+        [profileDialogOpen, setProfileDialogOpen] = useState(false),
         pubKeys = useRef({}),
         keys = useRef({}),
         signKeys = useRef({}),
@@ -145,12 +157,8 @@ export default function Main(props) {
 
     const isMt = useIsMount();
 
-    const syncData = (noCopy = false) => {
-        if (!noCopy) chatData[curGid] = chats;
-        ss.setVal('chatData', JSON.stringify(chatData)).then();
-    }
     const syncSignKeys = () => {
-        ss.setVal('signKeys', signPubKeys).then();
+        ss.setDoc('rData', 'signKeys', signPubKeys).then();
     }
 
     const verifySignKey = async (uid, p) => {
@@ -182,27 +190,33 @@ export default function Main(props) {
     useEffect(() => {
         //if (Object.keys(chatList).length === 0) return;
         if (isMt) return;
-        ss.setVal('chats', JSON.stringify(chatList)).then();
+        // ss.setDoc('chatData', curGid, chatList).then();
+        ss.setDoc('chatData', 'chatList', chatList).then();
         // If the user has 0 chats, un-minimize the chat list
         if (Object.keys(chatList).length === 0) setCListMinimized(false);
         // eslint-disable-next-line
     }, [chatList]);
     useEffect(() => {
-        if (chats.length === 0) return;
-        if (Object.keys(chatData).length === 0) return;
-        syncData();
+        if (!curGid) return;
+        // if (Object.keys(chatData).length === 0) return;
+        // syncData();
+        ss.setDoc('chatData', curGid, chats).then();
         // eslint-disable-next-line
     }, [chats]);
     useEffect(() => {
-        const nc = chatData[curGid] ?? [];
-        setChats(nc);
+        // const nc = chatData[curGid] ?? [];
+        if (!curGid) return;
+        ss.getDoc('chatData', curGid).then(v => {
+            setChats(v ?? []);
+            console.log(v);
+        });
+        // setChats();
         setVKey(v => ++v);
+        // console.error(chatData);
     }, [curGid]);
 
     useEffect(() => {
-        if (conState === 2) {
-            setDisableMsgInput({disabled: false});
-        }
+        if (conState === 2) setDisableMsgInput({disabled: false});
         else setDisableMsgInput({disabled: true, icon: <SignalCellularNodataRounded />, label: 'WebSocket Disconnected'});
     }, [conState]);
 
@@ -271,18 +285,23 @@ export default function Main(props) {
 
                         const act = () => {
                             receiveMsg(d, keys, signPubKeys).then(m => {
-                                const o = { msg: m.content, uid: d.uid, purpose: m.purpose };
+                                const o = { msg: m.content, uid: d.uid, purpose: m.purpose, time: d.time };
 
-                                if (!ov[d.gid].people.includes(o.uid)) return; // Fixes UID bug
-                                if (o.purpose === 'txt' || o.purpose === 'img') {
+                                // if (!ov[d.gid].people.includes(o.uid)) return; // Fixes UID bug
+                                if (o.purpose === 'txt' || o.purpose === 'img' || o.purpose === 'err') {
                                     let oldV = null;
                                     setCurGid(v => {
                                         oldV = v;
                                         return v
                                     });
-                                    if (!chatData[d.gid]) chatData[d.gid] = [];
+                                    // if (!chatData[d.gid]) chatData[d.gid] = [];
                                     if (d.gid === oldV) setChats(ov => [...ov, o]);
-                                    else chatData[d.gid].push(o);
+                                    else {
+                                        ss.getDoc('chatData', d.gid).then(cV => {
+                                            ss.setDoc('chatData', d.gid, (cV ?? []).push(o)).then()
+                                        });
+                                        // chatData[d.gid].push(o);
+                                    }
                                 }
                                 else if (o.purpose === 'metaUpdate') {
                                     const nm = JSON.parse(o.msg)
@@ -299,7 +318,7 @@ export default function Main(props) {
                             return ov;
                         }
                         if (!signPubKeys) signPubKeys = {};
-                        if (!chatData[d.gid]) chatData[d.gid] = [];
+                        // if (!chatData[d.gid]) chatData[d.gid] = [];
                         if (signPubKeys[d.uid]) act();
                         else {
                             requestSignKey(d.uid).then();
@@ -346,22 +365,22 @@ export default function Main(props) {
 
     useEffect(() => {
         (async () => {
-            const pub = await ss.getVal('pubKey');
-            const pri = await ss.getVal('priKey');
+            const pub = await ss.getDoc('keys', 'pubEnc');
+            const pri = await ss.getDoc('keys', 'priEnc');
             keys.current = {pub, pri};
 
-            const pubSign = await ss.getVal('signPub');
-            const priSign = await ss.getVal('signPri');
+            const pubSign = await ss.getDoc('keys', 'pubSign');
+            const priSign = await ss.getDoc('keys', 'priSign');
             signKeys.current = {pubSign, priSign};
 
-            signPubKeys = await ss.getVal('signKeys');
+            signPubKeys = await ss.getDoc('rData', 'signKeys');
 
-            usrUID = await ss.getVal('uid');
+            usrUID = await ss.getDoc('uData', 'uid');
 
-            const c = await ss.getVal('chats');
-            setChatList(c ? JSON.parse(c) : {});
-            const cData = await ss.getVal('chatData');
-            chatData = cData ? JSON.parse(cData) : {}
+            const c = await ss.getDoc('chatData', 'chatList');
+            setChatList(c ?? {});
+            // const cData = await ss.getVal('chatData');
+            // chatData = cData ? JSON.parse(cData) : {}
 
             connect();
         })();
@@ -381,7 +400,6 @@ export default function Main(props) {
                 purpose
             }]);
             setMsg('');
-            syncData();
 
             chatList[curGid].people.forEach(member => {
                 if (member === usrUID) return;
@@ -401,7 +419,7 @@ export default function Main(props) {
     return (
         <>
             <div style={{minHeight: '100vh'}}>
-                <AppBar position='relative' elevation={18}>
+                <AppBar position='relative' elevation={8}>
                     <Toolbar>
                         <img src={appIcon} width={32} height={32} alt='' />
                         <Typography variant='h6' component='div' sx={{flexGrow: 1, ml: 2.5}}>
@@ -438,7 +456,7 @@ export default function Main(props) {
                 </AppBar>
 
                 <div className={classes.container}>
-                    <Paper elevation={6} sx={{overflow: 'hidden'}}>
+                    <Paper elevation={6} sx={{overflow: 'hidden'}} className={classes.paper}>
                         <Collapse in={!cListMinimized} collapsedSize={64} orientation='horizontal'
                                   onExiting={() => setCListAnimComplete(false)} onExited={() => setCListAnimComplete(true)}>
                             <Box sx={{
@@ -510,7 +528,10 @@ export default function Main(props) {
                                     PaperProps={{ style: { minWidth: 300 } }}
                                     anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                                     transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-                                    <MenuItem onClick={_handleUMenuClose}><PersonRoundedIcon /> Profile</MenuItem>
+                                    <MenuItem onClick={() => {
+                                        setProfileDialogOpen(true);
+                                        _handleUMenuClose();
+                                    }}><PersonRoundedIcon /> Profile</MenuItem>
                                     <MenuItem onClick={_handleUMenuClose}><SettingsRoundedIcon /> Account Settings</MenuItem>
                                     <MenuItem onClick={async () => {
                                         setSignVerifyData({uid: null, key: null,
@@ -525,7 +546,7 @@ export default function Main(props) {
                     </Paper>
 
                     <Paper sx={{flexGrow: 1, position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden'}}
-                          elevation={6}>
+                          elevation={6} className={classes.paper}>
                         {
                             curGid
                                 ? <>
@@ -656,8 +677,9 @@ export default function Main(props) {
                         });
                         setChats([]);
                         requestAnimationFrame(() => {
-                            delete chatData[gid];
-                            syncData(true);
+                            // delete chatData[gid];
+                            ss.delDoc('chatData', gid).then();
+                            // syncData(true);
                         })
                         _handleDelClose();
                     }}>Delete</Button>
@@ -748,6 +770,8 @@ export default function Main(props) {
                     {snackbar.msg}
                 </Alert>
             </Snackbar>
+
+            <ProfileDialog open={profileDialogOpen} sOpen={setProfileDialogOpen} />
         </>
     )
 }

@@ -134,20 +134,24 @@ export default function OnBoarding(props) {
                         await ss.init(pw);
 
                         setLoadLabel('Saving keypair');
-                        await ss.setVal('priKey', keys.pri);
-                        await ss.setVal('pubKey', keys.pub);
+                        // await ss.setVal('priKey', keys.pri);
+                        // await ss.setVal('pubKey', keys.pub);
+                        await ss.setDoc('keys', 'priEnc', keys.pri);
+                        await ss.setDoc('keys', 'pubEnc', keys.pub);
 
                         setLoadLabel('Saving signing keys');
-                        await ss.setVal('signPub', signKeys.signPub);
-                        await ss.setVal('signPri', signKeys.signPri);
+                        // await ss.setVal('signPub', signKeys.signPub);
+                        // await ss.setVal('signPri', signKeys.signPri);
+                        await ss.setDoc('keys', 'pubSign', signKeys.signPub);
+                        await ss.setDoc('keys', 'priSign', signKeys.signPri);
 
                         setLoadLabel('Generating UID');
-                        await ss.setVal('uid', uuid());
+                        // await ss.setVal('uid', uuid());
+                        await ss.setDoc('uData', 'uid', uuid());
 
                         setLoadLabel('Reloading...');
                         document.location.reload();
-                    }}
-                            variant='contained' sx={{width: '100%', }}>Done</Button>
+                    }} variant='contained' sx={{width: '100%', }}>Done</Button>
                 </DialogActions>
             </Dialog>
         </>
