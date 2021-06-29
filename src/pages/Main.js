@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import {v4 as uuid} from 'uuid';
+import { v4 as uuid } from 'uuid';
 import { version as uuidVer } from 'uuid';
 import { validate as uuidValid } from 'uuid';
 
@@ -69,7 +69,7 @@ import { KeyboardArrowLeftRounded, SignalCellularNodataRounded } from '@material
 import clsx from 'clsx';
 
 // Assets
-import defBg from '../assets/bg/defaultBg.webp';
+import defBg from '../assets/bg/chattyBg.webp';
 import ProfileDialog from '../components/ProfileDialog';
 
 const useStyles = makeStyles((theme) => ({
@@ -100,8 +100,8 @@ const useStyles = makeStyles((theme) => ({
         transform: 'rotate(180deg)',
     },
     paper: {
-        background: '#00000077',
-        backdropFilter: 'blur(6px) saturate(1.2)'
+        background: '#00000000',
+        backdropFilter: 'blur(5px) saturate(1.2)'
     }
 }));
 
@@ -394,6 +394,8 @@ export default function Main(props) {
         else tm = msg.trim();
 
         if (tm.length !== 0) {
+            console.log(chats);
+            if (!chats) setChats([]);
             setChats([...chats, {
                 msg: tm,
                 uid: usrUID,

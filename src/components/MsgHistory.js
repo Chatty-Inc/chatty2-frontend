@@ -17,7 +17,7 @@ function MsgHistory(props) {
         }), 1);
     }
 
-    // console.log(props.c);
+    console.log(props.c);
 
     return <div style={{
         minHeight: 0,

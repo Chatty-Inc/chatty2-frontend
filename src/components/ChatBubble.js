@@ -3,6 +3,7 @@ import { memo, useState } from 'react';
 
 import { makeStyles } from '@material-ui/styles';
 import {
+    Alert,
     Avatar,
     Badge,
     Box, Button, ButtonBase, Chip, Dialog, DialogActions, DialogContent, Divider, IconButton, List,
@@ -292,6 +293,10 @@ const ChatBubble = memo(({ msg, uid, userUID, prevJoint, nextJoint, first, last,
                             {purpose === 'img' ? 'Image caption' : msg}
                         </Linkify>
                     </Typography>
+                }
+
+                {
+                    purpose === 'err' && <Alert severity='error' variant='outlined' sx={{mb: '5px', mt: .2}}>{msg}</Alert>
                 }
 
                 {

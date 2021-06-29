@@ -10,8 +10,6 @@ function importAll(r) {
 
 const images = importAll(require.context('../../assets/twemoji', false, /\.(png|jpe?g|svg|webp)$/));
 
-console.log(images);
-
 const ItemContainer = styled.div`
   padding: 5px;
   width: 42px;
