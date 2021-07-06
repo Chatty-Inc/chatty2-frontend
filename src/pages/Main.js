@@ -65,12 +65,13 @@ import receiveMsg from '../lib/msg/receiveMsg';
 import sendMsg from '../lib/msg/sendMsg';
 import { useIsMount } from '../hooks/useIsMount';
 import ChatSettings from '../components/ChatSettings';
-import { KeyboardArrowLeftRounded, SignalCellularNodataRounded } from '@material-ui/icons';
+import { KeyboardArrowLeftRounded, ScreenShareRounded, SignalCellularNodataRounded } from '@material-ui/icons';
 import clsx from 'clsx';
 
 // Assets
 import defBg from '../assets/bg/chattyBg.webp';
 import ProfileDialog from '../components/ProfileDialog';
+import ScreenShare from '../components/dialog/ScreenShare';
 
 const useStyles = makeStyles((theme) => ({
     container: {
@@ -124,6 +125,7 @@ export default function Main(props) {
 
     const
         [curGid, setCurGid] = useState(null),
+        [shareScreenOpen, setShareScreenOpen] = useState(false),
         [menuAnchor, setMenuAnchor] = useState(null),
         [uMenuAnchor, setUMenuAnchor] = useState(null),
         [chatList, setChatList] = useState({}),
@@ -441,7 +443,6 @@ export default function Main(props) {
                         <Box display='flex' ml={1.5}>
                             <Tooltip title='Settings'>
                                 <IconButton edge='end' color='inherit' aria-label='lock' sx={{m: .001}} onClick={() => {
-
                                             }}>
                                     <SettingsRoundedIcon />
                                 </IconButton>
@@ -560,9 +561,16 @@ export default function Main(props) {
                                                   setChatSettingOpen(true);
                                               }}>
                                         <ListItemAvatar><Avatar><ImageIcon/></Avatar></ListItemAvatar>
-                                        <ListItemText secondaryTypographyProps={{noWrap: true, mr: 2}}
+                                        <ListItemText secondaryTypographyProps={{noWrap: true, mr: 10}}
+                                                      primaryTypographyProps={{mr: 10}}
                                                       primary={chatList[curGid].name} secondary={chatList[curGid].people.join(', ')}/>
                                         <ListItemSecondaryAction>
+                                            <Tooltip title='Screen share (will ask for confirmation)'>
+                                                <IconButton onClick={() => setShareScreenOpen(true)}>
+                                                    <ScreenShareRounded />
+                                                </IconButton>
+                                            </Tooltip>
+
                                             <IconButton edge='end' aria-label='' id='more-btn' aria-controls='more-menu'
                                                         onClick={e => setMenuAnchor(e.currentTarget)} sx={{mr: 0.0001}}>
                                                 <MoreVertRoundedIcon />
@@ -761,6 +769,8 @@ export default function Main(props) {
                     }
                 </DialogActions>
             </Dialog>
+
+            <ScreenShare o={shareScreenOpen} so={setShareScreenOpen} />
 
             <ChatSettings open={chatSettingOpen} so={setChatSettingOpen} cg={curGid} cl={chatList} sCl={setChatList}
                           d={cSettingData} rsk={requestSignKey} uid={usrUID} sMeta={syncCurChatMeta}/>

@@ -14,7 +14,9 @@ import Loading from './components/Loading';
 // Fonts
 import '@fontsource/poppins/400.css';
 import '@fontsource/poppins/700.css';
-import '@fontsource/source-sans-pro/400.css';
+import '@fontsource/ibm-plex-sans/400.css';
+import MainErrorBoundary from './components/MainErrorBoundary';
+// import '@fontsource/source-sans-pro/400.css';
 
 const ss = new SecureStorage();
 
@@ -35,11 +37,13 @@ function App() {
         <>
             <ThemeProvider theme={themeOptions('dark')}>
                 <CssBaseline/>
-                { loading ? <Loading />
-                    : hasInit
-                        ? (loggedIn ? <Main ss={ss}/> : <Login sl={setLoggedIn} ss={ss} />)
-                        : <OnBoarding ss={ss}/>
-                }
+                <MainErrorBoundary>
+                    { loading ? <Loading />
+                        : hasInit
+                            ? (loggedIn ? <Main ss={ss}/> : <Login sl={setLoggedIn} ss={ss} />)
+                            : <OnBoarding ss={ss}/>
+                    }
+                </MainErrorBoundary>
             </ThemeProvider>
         </>
     );

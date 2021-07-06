@@ -33,7 +33,7 @@ const useStyles = makeStyles((theme) => ({
             whiteSpace: 'break-spaces',
             overflowWrap: 'anywhere',
             marginTop: -4,
-            fontFamily: '"Source Sans Pro", Poppins, system-ui, sans-serif',
+            fontFamily: '"IBM Plex Sans", Poppins, system-ui, sans-serif',
             letterSpacing: '.2px',
             '& a': {
                 color: theme.palette.primary.main
