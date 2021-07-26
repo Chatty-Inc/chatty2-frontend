@@ -3,7 +3,7 @@ import {
     Paper, Popover,
     SpeedDial,
     SpeedDialAction,
-    SpeedDialIcon, SvgIcon,
+    SpeedDialIcon,
     TextField, Tooltip,
     Typography
 } from '@material-ui/core';
@@ -17,8 +17,8 @@ import InputAdornment from '@material-ui/core/InputAdornment';
 
 import { motion } from 'framer-motion';
 
-import smileEmoji from '../assets/twemoji/1f600.webp';
-import EmojiPicker from './msg/EmojiPicker';
+import smileEmoji from '../../assets/twemoji/1f600.webp';
+import EmojiPicker from './EmojiPicker';
 
 export default function MsgInput(props) {
     const { disableState, send } = props;

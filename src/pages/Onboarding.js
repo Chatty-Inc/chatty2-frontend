@@ -15,7 +15,7 @@ import ArrowForwardRoundedIcon from '@material-ui/icons/ArrowForwardRounded';
 import CheckRoundedIcon from '@material-ui/icons/CheckRounded';
 
 import { useEffect, useState } from 'react';
-import PwField from '../components/PwField';
+import PwField from '../components/input/PwField';
 
 const genKeys = async () => {
     const keyPair = await window.crypto.subtle.generateKey(

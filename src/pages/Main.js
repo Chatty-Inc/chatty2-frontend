@@ -53,9 +53,9 @@ import SettingsRoundedIcon from '@material-ui/icons/SettingsRounded';
 
 // Components
 import ChatsList from '../components/ChatsList';
-import MsgInput from '../components/MsgInput';
-import NoChatPlaceholder from '../components/NoChatPlaceholder';
-import MsgHistory from '../components/MsgHistory';
+import MsgInput from '../components/input/MsgInput';
+import NoChatPlaceholder from '../components/ui/NoChatPlaceholder';
+import MsgHistory from '../components/renderMsg/MsgHistory';
 
 // Hashing utilities
 import getHexHash from '../lib/crypto/getHexHash';
@@ -101,7 +101,7 @@ const useStyles = makeStyles((theme) => ({
         transform: 'rotate(180deg)',
     },
     paper: {
-        background: '#00000000',
+        background: '#00000066',
         backdropFilter: 'blur(5px) saturate(1.2)'
     }
 }));
@@ -300,7 +300,10 @@ export default function Main(props) {
                                     if (d.gid === oldV) setChats(ov => [...ov, o]);
                                     else {
                                         ss.getDoc('chatData', d.gid).then(cV => {
-                                            ss.setDoc('chatData', d.gid, (cV ?? []).push(o)).then()
+                                            const val = !!cV && typeof cV === 'object'`` ? cV : []
+                                            console.log('cv:', cV);
+                                            val.push(o)
+                                            ss.setDoc('chatData', d.gid, val).then()
                                         });
                                         // chatData[d.gid].push(o);
                                     }

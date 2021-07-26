@@ -1,6 +1,6 @@
 import { Avatar, List, ListItem, ListItemAvatar, ListItemText, Tooltip } from '@material-ui/core';
 import ImageIcon from '@material-ui/icons/Image';
-import NoChatPlaceholder from './NoChatPlaceholder';
+import NoChatPlaceholder from './ui/NoChatPlaceholder';
 
 import { memo } from 'react';
 

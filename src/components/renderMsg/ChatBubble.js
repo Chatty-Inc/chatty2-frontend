@@ -20,7 +20,7 @@ import PersonRoundedIcon from '@material-ui/icons/PersonRounded';
 
 import Linkify from 'linkifyjs/react';
 import { AddRounded, DeleteForeverRounded, DownloadRounded } from '@material-ui/icons';
-import SitePreviewCard from './SitePreviewCard';
+import SitePreviewCard from '../SitePreviewCard';
 
 const useStyles = makeStyles((theme) => ({
     msgBubble: {

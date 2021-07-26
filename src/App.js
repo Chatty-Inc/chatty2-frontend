@@ -9,7 +9,7 @@ import { CssBaseline, ThemeProvider } from '@material-ui/core';
 import Main from './pages/Main';
 import Login from './pages/Login';
 import OnBoarding from './pages/Onboarding';
-import Loading from './components/Loading';
+import Loading from './components/ui/Loading';
 
 // Fonts
 import '@fontsource/poppins/400.css';

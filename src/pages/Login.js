@@ -9,7 +9,7 @@ import { makeStyles } from '@material-ui/styles';
 import LoginRoundedIcon from '@material-ui/icons/LoginRounded';
 
 import { useRef, useState } from 'react';
-import PwField from '../components/PwField';
+import PwField from '../components/input/PwField';
 
 import Shake from 'react-reveal/Shake';
 import clsx from 'clsx';
@@ -22,7 +22,7 @@ const generateTextShadow = count => {
     return shadows.join(',');
 }
 
-const NUM_DOTS = 100;
+const NUM_DOTS = 50;
 
 const useStyles = makeStyles((theme) => ({
     container: {
